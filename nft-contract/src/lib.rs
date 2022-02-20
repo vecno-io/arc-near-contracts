@@ -45,7 +45,7 @@ pub struct Contract {
 
     //keeps track of the token metadata for a given token ID
     pub token_metadata_by_id: UnorderedMap<TokenId, TokenMetadata>,
-		pub token_actordata_by_id: UnorderedMap<TokenId, TokenActordata>,
+    pub token_actordata_by_id: UnorderedMap<TokenId, TokenActordata>,
 
     //keeps track of the metadata for the contract
     pub metadata: LazyOption<NFTContractMetadata>,
@@ -58,7 +58,7 @@ pub enum StorageKey {
     TokenPerOwnerInner { account_id_hash: CryptoHash },
     TokensById,
     TokenMetadataById,
-		TokenActordataById,
+    TokenActordataById,
     NFTContractMetadata,
     TokensPerType,
     TokensPerTypeInner { token_type_hash: CryptoHash },
