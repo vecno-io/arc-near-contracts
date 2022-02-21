@@ -1,9 +1,9 @@
 {
-    "name": "nft-tutorial",
+    "name": "arc-near-contracts",
     "version": "1.0.0",
-    "description": "Zero to Hero NFT Tutorial",
-    "author": "Ben Kurrek",
-    "license": "ISC",
+    "description": "Near contract collection for story-arc.io",
+    "author": "Koen Van Rulo",
+    "license": "MIT",
     "scripts": {
         "build": "cd nft-contract && ./build.sh && cd .. && ls && cd market-contract && ./build.sh && cd .."
     }
