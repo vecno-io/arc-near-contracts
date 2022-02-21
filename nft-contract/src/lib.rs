@@ -9,6 +9,7 @@ use near_sdk::{
 
 use crate::internal::*;
 pub use crate::metadata::*;
+pub use crate::actordata::*;
 pub use crate::mint::*;
 pub use crate::nft_core::*;
 pub use crate::approval::*;
@@ -16,6 +17,7 @@ pub use crate::royalty::*;
 pub use crate::events::*;
 
 mod internal;
+mod actordata;
 mod approval; 
 mod enumeration; 
 mod metadata; 
@@ -25,7 +27,7 @@ mod royalty;
 mod events;
 
 /// This spec can be treated like a version of the standard.
-pub const NFT_METADATA_SPEC: &str = "nft-1.0.0";
+pub const NFT_METADATA_SPEC: &str = "1.0.0";
 /// This is the name of the NFT standard we're using
 pub const NFT_STANDARD_NAME: &str = "nep171";
 
@@ -43,6 +45,7 @@ pub struct Contract {
 
     //keeps track of the token metadata for a given token ID
     pub token_metadata_by_id: UnorderedMap<TokenId, TokenMetadata>,
+    pub token_actordata_by_id: UnorderedMap<TokenId, TokenActordata>,
 
     //keeps track of the metadata for the contract
     pub metadata: LazyOption<NFTContractMetadata>,
@@ -55,6 +58,7 @@ pub enum StorageKey {
     TokenPerOwnerInner { account_id_hash: CryptoHash },
     TokensById,
     TokenMetadataById,
+    TokenActordataById,
     NFTContractMetadata,
     TokensPerType,
     TokensPerTypeInner { token_type_hash: CryptoHash },
@@ -99,6 +103,9 @@ impl Contract {
             tokens_by_id: LookupMap::new(StorageKey::TokensById.try_to_vec().unwrap()),
             token_metadata_by_id: UnorderedMap::new(
                 StorageKey::TokenMetadataById.try_to_vec().unwrap(),
+            ),
+            token_actordata_by_id: UnorderedMap::new(
+                StorageKey::TokenActordataById.try_to_vec().unwrap(),
             ),
             //set the owner_id field equal to the passed in owner_id. 
             owner_id,
