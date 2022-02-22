@@ -21,11 +21,14 @@ impl Contract {
         //get the sale object by removing the unique sale ID. If there was no sale, panic
         let sale = self.sales.remove(&contract_and_token_id).expect("No sale");
 
-        //get the set of sales for the sale's owner. If there's no sale, panic. 
-        let mut by_owner_id = self.by_owner_id.get(&sale.owner_id).expect("No sale by_owner_id");
+        //get the set of sales for the sale's owner. If there's no sale, panic.
+        let mut by_owner_id = self
+            .by_owner_id
+            .get(&sale.owner_id)
+            .expect("No sale by_owner_id");
         //remove the unique sale ID from the set of sales
         by_owner_id.remove(&contract_and_token_id);
-        
+
         //if the set of sales is now empty after removing the unique sale ID, we simply remove that owner from the map
         if by_owner_id.is_empty() {
             self.by_owner_id.remove(&sale.owner_id);
@@ -34,15 +37,15 @@ impl Contract {
             self.by_owner_id.insert(&sale.owner_id, &by_owner_id);
         }
 
-        //get the set of token IDs for sale for the nft contract ID. If there's no sale, panic. 
+        //get the set of token IDs for sale for the nft contract ID. If there's no sale, panic.
         let mut by_nft_contract_id = self
             .by_nft_contract_id
             .get(&nft_contract_id)
             .expect("No sale by nft_contract_id");
-        
-        //remove the token ID from the set 
+
+        //remove the token ID from the set
         by_nft_contract_id.remove(&token_id);
-        
+
         //if the set is now empty after removing the token ID, we remove that nft contract ID from the map
         if by_nft_contract_id.is_empty() {
             self.by_nft_contract_id.remove(&nft_contract_id);

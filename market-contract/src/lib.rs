@@ -3,8 +3,8 @@ use near_sdk::collections::{LookupMap, UnorderedMap, UnorderedSet};
 use near_sdk::json_types::{U128, U64};
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{
-    assert_one_yocto, env, ext_contract, near_bindgen, AccountId, Balance, Gas, PanicOnDefault,
-    Promise, CryptoHash, BorshStorageKey,
+    assert_one_yocto, env, ext_contract, near_bindgen, AccountId, Balance, BorshStorageKey,
+    CryptoHash, Gas, PanicOnDefault, Promise,
 };
 use std::collections::HashMap;
 
@@ -32,7 +32,7 @@ const STORAGE_PER_SALE: u128 = 1000 * STORAGE_PRICE_PER_BYTE;
 //every sale will have a unique ID which is `CONTRACT + DELIMITER + TOKEN_ID`
 static DELIMETER: &str = ".";
 
-//Creating custom types to use within the contract. This makes things more readable. 
+//Creating custom types to use within the contract. This makes things more readable.
 pub type SalePriceInYoctoNear = U128;
 pub type TokenId = String;
 pub type FungibleTokenId = AccountId;
@@ -42,8 +42,7 @@ pub type ContractAndTokenId = String;
 #[serde(crate = "near_sdk::serde")]
 pub struct Payout {
     pub payout: HashMap<AccountId, U128>,
-} 
-
+}
 
 //main contract struct to store all the information
 #[near_bindgen]
@@ -51,14 +50,14 @@ pub struct Payout {
 pub struct Contract {
     //keep track of the owner of the contract
     pub owner_id: AccountId,
-    
+
     /*
-        to keep track of the sales, we map the ContractAndTokenId to a Sale. 
+        to keep track of the sales, we map the ContractAndTokenId to a Sale.
         the ContractAndTokenId is the unique identifier for every sale. It is made
         up of the `contract ID + DELIMITER + token ID`
     */
     pub sales: UnorderedMap<ContractAndTokenId, Sale>,
-    
+
     //keep track of all the Sale IDs for every account ID
     pub by_owner_id: LookupMap<AccountId, UnorderedSet<ContractAndTokenId>>,
 
@@ -93,7 +92,7 @@ impl Contract {
     #[init]
     pub fn new(owner_id: AccountId) -> Self {
         let this = Self {
-            //set the owner_id field equal to the passed in owner_id. 
+            //set the owner_id field equal to the passed in owner_id.
             owner_id,
 
             //Storage keys are simply the prefixes used for the collections. This helps avoid data collision
@@ -112,7 +111,7 @@ impl Contract {
     #[payable]
     pub fn storage_deposit(&mut self, account_id: Option<AccountId>) {
         //get the account ID to pay for storage for
-        let storage_account_id = account_id 
+        let storage_account_id = account_id
             //convert the valid account ID into an account ID
             .map(|a| a.into())
             //if we didn't specify an account ID, we simply use the caller of the function
@@ -138,23 +137,23 @@ impl Contract {
 
     //Allows users to withdraw any excess storage that they're not using. Say Bob pays 0.01N for 1 sale
     //Alice then buys Bob's token. This means bob has paid 0.01N for a sale that's no longer on the marketplace
-    //Bob could then withdraw this 0.01N back into his account. 
+    //Bob could then withdraw this 0.01N back into his account.
     #[payable]
     pub fn storage_withdraw(&mut self) {
         //make sure the user attaches exactly 1 yoctoNEAR for security purposes.
-        //this will redirect them to the NEAR wallet (or requires a full access key). 
+        //this will redirect them to the NEAR wallet (or requires a full access key).
         assert_one_yocto();
 
         //the account to withdraw storage to is always the function caller
         let owner_id = env::predecessor_account_id();
         //get the amount that the user has by removing them from the map. If they're not in the map, default to 0
         let mut amount = self.storage_deposits.remove(&owner_id).unwrap_or(0);
-        
+
         //how many sales is that user taking up currently. This returns a set
         let sales = self.by_owner_id.get(&owner_id);
-        //get the length of that set. 
+        //get the length of that set.
         let len = sales.map(|s| s.len()).unwrap_or_default();
-        //how much NEAR is being used up for all the current sales on the account 
+        //how much NEAR is being used up for all the current sales on the account
         let diff = u128::from(len) * STORAGE_PER_SALE;
 
         //the excess to withdraw is the total storage paid - storage being used up.

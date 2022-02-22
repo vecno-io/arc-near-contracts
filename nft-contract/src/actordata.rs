@@ -43,16 +43,16 @@ pub struct Ancestry {
 #[serde(crate = "near_sdk::serde")]
 pub struct Attributes {
     pub dexterity: u8,
-		pub empathy: u8,
-		pub intellect: u8,
+    pub empathy: u8,
+    pub intellect: u8,
 
-		pub perception: u8,
-		pub presence: u8,
-		pub stamina: u8,
+    pub perception: u8,
+    pub presence: u8,
+    pub stamina: u8,
 
-		pub strength: u8,
-		pub vitality: u8,
-		pub wisdom: u8,
+    pub strength: u8,
+    pub vitality: u8,
+    pub wisdom: u8,
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Clone)]
