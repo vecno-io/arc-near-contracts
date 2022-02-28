@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2021 Koen Van Rulo.
+Copyright (c) 2022 Koen Van Rulo.
 Copyright (c) 2021 Examples from NEAR, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

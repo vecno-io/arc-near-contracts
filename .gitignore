@@ -18,6 +18,7 @@ notes
 /coverage
 
 # builds
+/build
 /dist
 /out
 res
