@@ -2,6 +2,9 @@ use std::fmt;
 
 use near_sdk::serde::{Deserialize, Serialize};
 
+pub const EVENT_NFT_METADATA_SPEC: &str = "1.0.0";
+pub const EVENT_NFT_STANDARD_NAME: &str = "nep171";
+
 /// Enum that represents the data type of the EventLog.
 /// The enum can either be an NftMint or an NftTransfer.
 #[derive(Serialize, Deserialize, Debug)]
