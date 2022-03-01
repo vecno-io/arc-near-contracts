@@ -9,8 +9,8 @@ pub trait ArcActor {
     //view call for returning the actor data for the provided id
     fn arc_actor(&self, token_id: TokenId) -> Option<JsonActor>;
 
-    //mint a new actor with the provided data, returns the token id
-    fn arc_mint_actor(
+    //register a new actor with the provided data, returns the token id
+    fn arc_register_actor(
         &mut self,
         receiver_id: AccountId,
         actor_data: ActorData,
@@ -21,7 +21,7 @@ pub trait ArcActor {
 }
 
 pub trait ArcActorEnumerator {
-    fn arc_actor_supply(&self) -> U128;
+    fn arc_actor_count(&self) -> U128;
 
     fn arc_actors(&self, from_index: Option<U128>, limit: Option<u64>) -> Vec<JsonActor>;
 
@@ -56,7 +56,7 @@ impl ArcActor for Contract {
     }
 
     #[payable]
-    fn arc_mint_actor(
+    fn arc_register_actor(
         &mut self,
         receiver_id: AccountId,
         actor_data: ActorData,
@@ -65,9 +65,13 @@ impl ArcActor for Contract {
         memo: Option<String>,
     ) -> TokenId {
         assert_min_one_yocto();
-
         actor_data.assert_valid();
         token_data.assert_valid();
+
+        let asset_data = self
+            .contract_data
+            .get()
+            .expect("Contract to be initialized");
 
         let storage_usage = env::storage_usage();
 
@@ -89,13 +93,12 @@ impl ArcActor for Contract {
             );
         }
 
-        // DEV temp use the guild count as a unique ID
-        // TODO Generate a unique id based on guild data
-        let cnt = self.guild_count.get().unwrap();
-        self.guild_count.set(&(cnt + 1));
-        let id = cnt.to_string();
-
-        //create the token and store it
+        //create the token for the specified guild and store it
+        let token_id = format!(
+            "{}:Actor:{:06}",
+            asset_data.symbol,
+            self.actordata_by_id.len()
+        );
         let token = Token {
             owner_id: receiver_id,
             royalty: royalty,
@@ -103,13 +106,13 @@ impl ArcActor for Contract {
             approved_accounts: Default::default(),
         };
         require!(
-            self.tokens_by_id.insert(&id, &token).is_none(),
+            self.tokens_by_id.insert(&token_id, &token).is_none(),
             "A token with the generated id already exits"
         );
-        self.actordata_by_id.insert(&id, &actor_data);
-        self.tokendata_by_id.insert(&id, &token_data);
+        self.actordata_by_id.insert(&token_id, &actor_data);
+        self.tokendata_by_id.insert(&token_id, &token_data);
 
-        let created = self.add_token_to_owner(&id, &token.owner_id);
+        let created = self.add_token_to_owner(&token_id, &token.owner_id);
 
         //log an event message for the mint
         let nft_mint_log: EventLog = EventLog {
@@ -117,7 +120,7 @@ impl ArcActor for Contract {
             standard: EVENT_NFT_STANDARD_NAME.to_string(),
             event: EventLogVariant::NftMint(vec![NftMintLog {
                 owner_id: token.owner_id.to_string(),
-                token_ids: vec![id.to_string()],
+                token_ids: vec![token_id.to_string()],
                 memo,
             }]),
         };
@@ -126,12 +129,12 @@ impl ArcActor for Contract {
         //refund unused storage fees and return the id to the caller,
         let key_cost = if created { 0 } else { 32 }; //edge: one owner per token
         refund_storage_deposit((env::storage_usage() - storage_usage) + key_cost);
-        id
+        token_id
     }
 }
 
 impl ArcActorEnumerator for Contract {
-    fn arc_actor_supply(&self) -> U128 {
+    fn arc_actor_count(&self) -> U128 {
         U128(self.actordata_by_id.len() as u128)
     }
 
