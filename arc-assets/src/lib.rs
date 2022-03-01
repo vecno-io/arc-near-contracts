@@ -2,7 +2,9 @@ use arc_shared::{ActorData, ContractData, Payout, TokenData, TokenId, NFT_METADA
 
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LazyOption, LookupMap, UnorderedMap, UnorderedSet};
-use near_sdk::{env, near_bindgen, AccountId, Balance, PanicOnDefault, Promise, PromiseOrValue};
+use near_sdk::{
+    env, near_bindgen, AccountId, Balance, CryptoHash, PanicOnDefault, Promise, PromiseOrValue,
+};
 
 use crate::intern::*;
 
@@ -26,7 +28,7 @@ pub enum StorageKey {
     ContractData,
     TokensById,
     TokensByOwner,
-    TokensByOwnerSet { owner_id: String },
+    TokensByOwnerSet { owner_key: CryptoHash },
     TokendataById,
     ActordataById,
 }
@@ -50,7 +52,7 @@ pub struct Contract {
     pub actordata_by_id: UnorderedMap<TokenId, ActorData>,
 
     //keeps track of all the token for a given account
-    pub tokens_per_owner: LookupMap<AccountId, UnorderedSet<TokenId>>,
+    pub tokens_per_owner: LookupMap<CryptoHash, UnorderedSet<TokenId>>,
 }
 
 #[near_bindgen]

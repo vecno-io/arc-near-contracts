@@ -108,7 +108,8 @@ impl ArcActor for Contract {
         );
         self.actordata_by_id.insert(&id, &actor_data);
         self.tokendata_by_id.insert(&id, &token_data);
-        self.add_token_to_owner(&id, &token.owner_id);
+
+        let created = self.add_token_to_owner(&id, &token.owner_id);
 
         //log an event message for the mint
         let nft_mint_log: EventLog = EventLog {
@@ -122,8 +123,9 @@ impl ArcActor for Contract {
         };
         env::log_str(&nft_mint_log.to_string());
 
-        //refund unused storage fees and return the id to the caller
-        refund_storage_deposit(env::storage_usage() - storage_usage);
+        //refund unused storage fees and return the id to the caller,
+        let key_cost = if created { 0 } else { 32 }; //edge: one owner per token
+        refund_storage_deposit((env::storage_usage() - storage_usage) + key_cost);
         id
     }
 }
@@ -144,7 +146,10 @@ impl ArcActorEnumerator for Contract {
     }
 
     fn arc_actor_supply_for_owner(&self, account_id: AccountId) -> U128 {
-        if let Some(tokens_for_owner_set) = self.tokens_per_owner.get(&account_id) {
+        if let Some(tokens_for_owner_set) = self
+            .tokens_per_owner
+            .get(&hash_storage_key(account_id.as_bytes()))
+        {
             U128(tokens_for_owner_set.len() as u128)
         } else {
             U128(0)
@@ -157,7 +162,10 @@ impl ArcActorEnumerator for Contract {
         from_index: Option<U128>,
         limit: Option<u64>,
     ) -> Vec<JsonActor> {
-        if let Some(tokens_for_owner_set) = self.tokens_per_owner.get(&account_id) {
+        if let Some(tokens_for_owner_set) = self
+            .tokens_per_owner
+            .get(&hash_storage_key(account_id.as_bytes()))
+        {
             let start = u128::from(from_index.unwrap_or(U128(0)));
             return tokens_for_owner_set
                 .iter()

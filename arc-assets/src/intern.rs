@@ -24,6 +24,13 @@ pub(crate) fn assert_min_one_yocto() {
     )
 }
 
+//used to generate a unique fixed size prefix for storage
+pub(crate) fn hash_storage_key(bytes: &[u8]) -> CryptoHash {
+    let mut hash = CryptoHash::default();
+    hash.copy_from_slice(&env::sha256(bytes));
+    hash
+}
+
 //refund the initial deposit based on the amount of storage that was used up
 pub(crate) fn refund_storage_deposit(storage_used: u64) {
     let required_cost = env::storage_byte_cost() * Balance::from(storage_used);
@@ -75,35 +82,38 @@ pub(crate) fn royalty_to_payout(royalty_percentage: u32, amount_to_pay: Balance)
 }
 
 impl Contract {
-    pub(crate) fn add_token_to_owner(&mut self, token_id: &TokenId, owner_id: &AccountId) {
-        //try to get the set of tokens for the given account or create a new token set for the account
-        let mut tokens_set = self.tokens_per_owner.get(owner_id).unwrap_or_else(|| {
+    pub(crate) fn add_token_to_owner(&mut self, token_id: &TokenId, owner_id: &AccountId) -> bool {
+        let mut created = false;
+        let owner_key = hash_storage_key(owner_id.as_bytes());
+        let mut tokens_set = self.tokens_per_owner.get(&owner_key).unwrap_or_else(|| {
+            created = true;
             UnorderedSet::new(
-                StorageKey::TokensByOwnerSet {
-                    owner_id: owner_id.to_string(),
-                }
-                .try_to_vec()
-                .unwrap(),
+                StorageKey::TokensByOwnerSet { owner_key }
+                    .try_to_vec()
+                    .unwrap(),
             )
         });
-        //then, insert the token and set
+
         tokens_set.insert(token_id);
-        self.tokens_per_owner.insert(owner_id, &tokens_set);
+        self.tokens_per_owner.insert(&owner_key, &tokens_set);
+
+        created
     }
 
     pub(crate) fn remove_token_from_owner(&mut self, token_id: &TokenId, account_id: &AccountId) {
-        //get the token set for the owner or panic with message
+        let owner_key = hash_storage_key(account_id.as_bytes());
+
         let mut tokens_set = self
             .tokens_per_owner
-            .get(account_id)
+            .get(&owner_key)
             .expect("Sender must own the token");
 
         tokens_set.remove(token_id);
 
         if tokens_set.is_empty() {
-            self.tokens_per_owner.remove(account_id);
+            self.tokens_per_owner.remove(&owner_key);
         } else {
-            self.tokens_per_owner.insert(account_id, &tokens_set);
+            self.tokens_per_owner.insert(&owner_key, &tokens_set);
         }
     }
 

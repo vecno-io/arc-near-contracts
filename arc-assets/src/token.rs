@@ -273,7 +273,10 @@ impl NftTokenEnumerator for Contract {
     }
 
     fn nft_supply_for_owner(&self, account_id: AccountId) -> U128 {
-        if let Some(tokens_for_owner_set) = self.tokens_per_owner.get(&account_id) {
+        if let Some(tokens_for_owner_set) = self
+            .tokens_per_owner
+            .get(&hash_storage_key(account_id.as_bytes()))
+        {
             U128(tokens_for_owner_set.len() as u128)
         } else {
             U128(0)
@@ -286,7 +289,10 @@ impl NftTokenEnumerator for Contract {
         from_index: Option<U128>,
         limit: Option<u64>,
     ) -> Vec<JsonToken> {
-        if let Some(tokens_for_owner_set) = self.tokens_per_owner.get(&account_id) {
+        if let Some(tokens_for_owner_set) = self
+            .tokens_per_owner
+            .get(&hash_storage_key(account_id.as_bytes()))
+        {
             let start = u128::from(from_index.unwrap_or(U128(0)));
             return tokens_for_owner_set
                 .iter()
