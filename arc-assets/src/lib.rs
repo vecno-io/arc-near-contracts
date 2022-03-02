@@ -1,4 +1,6 @@
-use arc_shared::{ActorData, ContractData, Payout, TokenData, TokenId, NFT_METADATA_SPEC};
+use arc_shared::{
+    ActorData, ContractData, GuildData, GuildId, Payout, TokenData, TokenId, NFT_METADATA_SPEC,
+};
 
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LazyOption, LookupMap, UnorderedMap, UnorderedSet};
@@ -11,6 +13,7 @@ use crate::intern::*;
 pub use crate::actor::*;
 pub use crate::approval::*;
 pub use crate::events::*;
+pub use crate::guild::*;
 pub use crate::royalty::*;
 pub use crate::token::*;
 
@@ -19,39 +22,47 @@ mod intern;
 mod actor;
 mod approval;
 mod events;
+mod guild;
 mod royalty;
 mod token;
 
 #[derive(BorshSerialize)]
 pub enum StorageKey {
-    GuildCount,
+    ManagerId,
     ContractData,
+    GuildsById,
     TokensById,
-    TokensByOwner,
-    TokensByOwnerSet { owner_key: CryptoHash },
+    GuilddataById,
     TokendataById,
     ActordataById,
+    TokensPerGuild,
+    TokensPerOwner,
+    TokensPerOwnerSet { owner_key: CryptoHash },
 }
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct Contract {
-    //contract owner
-    pub owner_id: AccountId,
-    //keeps track of the contract data for a contract
-    pub guild_count: LazyOption<u64>,
+    //contract manager
+    pub manager_id: LazyOption<AccountId>,
     //keeps track of the contract data for a contract
     pub contract_data: LazyOption<ContractData>,
 
+    //keeps track of the guild struct for a given guild ID
+    pub guilds_by_id: LookupMap<GuildId, Guild>,
     //keeps track of the token struct for a given token ID
     pub tokens_by_id: LookupMap<TokenId, Token>,
 
-    //keeps track of the token tokendata for a given token ID
+    //keeps track of the guilds guilddata for a given guild ID
+    pub guilddata_by_id: UnorderedMap<GuildId, GuildData>,
+    //keeps track of the tokens tokendata for a given token ID
     pub tokendata_by_id: UnorderedMap<TokenId, TokenData>,
-    //keeps track of the token actordata for a given token ID
+    //keeps track of the tokens actordata for a given token ID
     pub actordata_by_id: UnorderedMap<TokenId, ActorData>,
 
-    //keeps track of all the token for a given account
+    //keeps track of all the guild for a given guild
+    pub tokens_per_guild: LookupMap<GuildId, UnorderedSet<TokenId>>,
+    //keeps track of all the tokens for a given account
     pub tokens_per_owner: LookupMap<CryptoHash, UnorderedSet<TokenId>>,
 }
 
@@ -62,23 +73,29 @@ impl Contract {
     }
 
     #[init]
-    pub fn new(owner_id: AccountId, contract_data: ContractData) -> Self {
+    pub fn new(manager_id: AccountId, contract_data: ContractData) -> Self {
         contract_data.assert_valid();
 
         //initialize the contract data and return it
         let this = Self {
-            owner_id,
-            guild_count: LazyOption::new(StorageKey::GuildCount.try_to_vec().unwrap(), Some(&0)),
+            manager_id: LazyOption::new(
+                StorageKey::ManagerId.try_to_vec().unwrap(),
+                Some(&manager_id),
+            ),
             contract_data: LazyOption::new(
                 StorageKey::ContractData.try_to_vec().unwrap(),
                 Some(&contract_data),
             ),
 
+            guilds_by_id: LookupMap::new(StorageKey::GuildsById.try_to_vec().unwrap()),
             tokens_by_id: LookupMap::new(StorageKey::TokensById.try_to_vec().unwrap()),
-            tokens_per_owner: LookupMap::new(StorageKey::TokensByOwner.try_to_vec().unwrap()),
 
+            guilddata_by_id: UnorderedMap::new(StorageKey::GuilddataById.try_to_vec().unwrap()),
             tokendata_by_id: UnorderedMap::new(StorageKey::TokendataById.try_to_vec().unwrap()),
             actordata_by_id: UnorderedMap::new(StorageKey::ActordataById.try_to_vec().unwrap()),
+
+            tokens_per_guild: LookupMap::new(StorageKey::TokensPerGuild.try_to_vec().unwrap()),
+            tokens_per_owner: LookupMap::new(StorageKey::TokensPerOwner.try_to_vec().unwrap()),
         };
         this
     }

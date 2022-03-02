@@ -2,6 +2,9 @@ use std::fmt;
 
 use near_sdk::serde::{Deserialize, Serialize};
 
+pub const EVENT_ARC_METADATA_SPEC: &str = "1.0.0";
+pub const EVENT_ARC_STANDARD_NAME: &str = "arc-core";
+
 pub const EVENT_NFT_METADATA_SPEC: &str = "1.0.0";
 pub const EVENT_NFT_STANDARD_NAME: &str = "nep171";
 
@@ -13,6 +16,7 @@ pub const EVENT_NFT_STANDARD_NAME: &str = "nep171";
 #[serde(crate = "near_sdk::serde")]
 #[non_exhaustive]
 pub enum EventLogVariant {
+    ArcMint(Vec<ArcMintLog>),
     NftMint(Vec<NftMintLog>),
     NftTransfer(Vec<NftTransferLog>),
 }
@@ -41,6 +45,24 @@ impl fmt::Display for EventLog {
             &serde_json::to_string(self).map_err(|_| fmt::Error)?
         ))
     }
+}
+
+/// An event log to capture token minting
+///
+/// Arguments
+/// * `owner_id`: "account.near"
+/// * `token_type`: "arc:type"
+/// * `token_list`: ["1", "abc"]
+/// * `memo`: optional message
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(crate = "near_sdk::serde")]
+pub struct ArcMintLog {
+    pub owner_id: String,
+    pub token_type: String,
+    pub token_list: Vec<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub memo: Option<String>,
 }
 
 /// An event log to capture token minting

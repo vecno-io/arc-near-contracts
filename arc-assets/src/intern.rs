@@ -88,7 +88,7 @@ impl Contract {
         let mut tokens_set = self.tokens_per_owner.get(&owner_key).unwrap_or_else(|| {
             created = true;
             UnorderedSet::new(
-                StorageKey::TokensByOwnerSet { owner_key }
+                StorageKey::TokensPerOwnerSet { owner_key }
                     .try_to_vec()
                     .unwrap(),
             )

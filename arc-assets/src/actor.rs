@@ -80,8 +80,8 @@ impl ArcActor for Contract {
         let mut royalty = HashMap::new();
         if let Some(royalties) = royalties {
             require!(
-                royalties.len() < 11,
-                "Cannot add more than 10 royalty amounts per token"
+                royalties.len() < 5,
+                "Cannot add more than 4 royalty amounts per actor"
             );
             for (account, amount) in royalties {
                 royalty.insert(account, amount);
@@ -93,7 +93,7 @@ impl ArcActor for Contract {
             );
         }
 
-        //create the token for the specified guild and store it
+        //create the token and store it
         let token_id = format!(
             "{}:Actor:{:06}",
             asset_data.symbol,
@@ -121,10 +121,21 @@ impl ArcActor for Contract {
             event: EventLogVariant::NftMint(vec![NftMintLog {
                 owner_id: token.owner_id.to_string(),
                 token_ids: vec![token_id.to_string()],
-                memo,
+                memo: memo.clone(),
             }]),
         };
         env::log_str(&nft_mint_log.to_string());
+        let arc_mint_log: EventLog = EventLog {
+            version: EVENT_ARC_METADATA_SPEC.to_string(),
+            standard: EVENT_ARC_STANDARD_NAME.to_string(),
+            event: EventLogVariant::ArcMint(vec![ArcMintLog {
+                owner_id: token.owner_id.to_string(),
+                token_type: "arc:actor".to_string(),
+                token_list: vec![token_id.to_string()],
+                memo,
+            }]),
+        };
+        env::log_str(&arc_mint_log.to_string());
 
         //refund unused storage fees and return the id to the caller,
         let key_cost = if created { 0 } else { 32 }; //edge: one owner per token
