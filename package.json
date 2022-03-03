@@ -5,6 +5,6 @@
     "author": "Koen Van Rulo",
     "license": "MIT",
     "scripts": {
-				"build": "cd ./arc-assets && ./build.sh && cd ../.. && ls && cd market-contract && ./build.sh && cd .."
+				"build": "cd ./arc-assets && ./build.sh && cd .. && cd ./arc-market && ./build.sh && cd .."
     }
 }
