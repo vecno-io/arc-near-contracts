@@ -1,11 +1,16 @@
 use crate::*;
 
 use near_sdk::json_types::U128;
+use near_sdk::Gas;
 use std::collections::HashMap;
 use std::mem::size_of;
 
 pub(crate) const NO_DEPOSIT: Balance = 0;
 pub(crate) const MAX_TOTAL_ROYALTIES: u32 = 10000;
+
+pub(crate) const GAS_FOR_RESOLVE_TRANSFER: Gas = Gas(10_000_000_000_000);
+pub(crate) const GAS_FOR_NFT_TRANSFER_CALL: Gas = Gas(35_000_000_000_000);
+pub(crate) const MIN_GAS_FOR_NFT_TRANSFER_CALL: Gas = Gas(100_000_000_000_000);
 
 //used to make sure the user attached exactly 1 yoctoNEAR
 pub(crate) fn assert_one_yocto() {

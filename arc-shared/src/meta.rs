@@ -67,3 +67,9 @@ impl TokenData {
         }
     }
 }
+
+impl NftMetadata for Contract {
+    fn nft_metadata(&self) -> ContractData {
+        self.contract_data.get().unwrap()
+    }
+}
