@@ -1,8 +1,7 @@
 [workspace]
 members = [
-    "arc-assets",
     "arc-market",
-    "arc-shared",
+    "arc-standard",
 ]
 
 [profile.release]

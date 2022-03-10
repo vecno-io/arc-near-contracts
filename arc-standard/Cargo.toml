@@ -1,5 +1,5 @@
 [package]
-name = "arc-shared"
+name = "arc-standard"
 version = "0.1.0"
 authors = ["vecno.io <info@vecno.io>"]
 edition = "2021"
