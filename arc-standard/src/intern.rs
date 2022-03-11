@@ -1,7 +1,5 @@
 use crate::*;
 
-use near_sdk::json_types::U128;
-use near_sdk::Gas;
 use std::collections::HashMap;
 use std::mem::size_of;
 

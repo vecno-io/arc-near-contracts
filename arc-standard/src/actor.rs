@@ -1,7 +1,5 @@
 use crate::*;
 
-use near_sdk::json_types::U128;
-use near_sdk::require;
 use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize)]

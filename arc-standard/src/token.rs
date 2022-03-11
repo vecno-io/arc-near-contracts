@@ -1,7 +1,5 @@
 use crate::*;
 
-use near_sdk::json_types::U128;
-use near_sdk::{ext_contract, Gas, PromiseResult};
 use std::collections::HashMap;
 
 pub type TokenId = String;

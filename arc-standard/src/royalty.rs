@@ -1,6 +1,5 @@
 use crate::*;
 
-use near_sdk::json_types::U128;
 use std::collections::HashMap;
 
 //defines the payout type we'll be returning as a part of the royalty standards.

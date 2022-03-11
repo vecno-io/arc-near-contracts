@@ -1,6 +1,6 @@
-use std::fmt;
+use crate::*;
 
-use near_sdk::serde::{Deserialize, Serialize};
+use std::fmt;
 
 pub const EVENT_ARC_METADATA_SPEC: &str = "1.0.0";
 pub const EVENT_ARC_STANDARD_NAME: &str = "arc-core";

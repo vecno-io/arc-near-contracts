@@ -1,15 +1,16 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LazyOption, LookupMap, UnorderedMap, UnorderedSet};
-use near_sdk::json_types::Base64VecU8;
+use near_sdk::json_types::{Base64VecU8, U128};
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{
-    env, near_bindgen, require, AccountId, Balance, CryptoHash, PanicOnDefault, Promise,
-    PromiseOrValue,
+    env, ext_contract, near_bindgen, require, AccountId, Balance, CryptoHash, Gas, PanicOnDefault,
+    Promise, PromiseOrValue, PromiseResult,
 };
 
 mod intern;
 
 pub mod actor;
+pub mod approval;
 pub mod events;
 pub mod guild;
 pub mod meta;
@@ -19,6 +20,7 @@ pub mod token;
 use crate::intern::*;
 
 pub use crate::actor::*;
+pub use crate::approval::*;
 pub use crate::events::*;
 pub use crate::guild::*;
 pub use crate::meta::*;
