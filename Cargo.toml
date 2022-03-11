@@ -1,5 +1,7 @@
 [workspace]
 members = [
+    "arc-app",
+    "arc-core",
     "arc-market",
     "arc-standard",
 ]
