@@ -5,23 +5,23 @@ const GAS_FOR_NFT_APPROVE: Gas = Gas(10_000_000_000_000);
 pub trait NftApproval {
     fn nft_is_approved(
         &self,
-        token_id: TokenId,
+        token_id: TokenKey,
         approved_account_id: AccountId,
         approval_id: Option<u64>,
     ) -> bool;
 
-    fn nft_approve(&mut self, token_id: TokenId, account_id: AccountId, msg: Option<String>);
+    fn nft_approve(&mut self, token_id: TokenKey, account_id: AccountId, msg: Option<String>);
 
-    fn nft_revoke(&mut self, token_id: TokenId, account_id: AccountId);
+    fn nft_revoke(&mut self, token_id: TokenKey, account_id: AccountId);
 
-    fn nft_revoke_all(&mut self, token_id: TokenId);
+    fn nft_revoke_all(&mut self, token_id: TokenKey);
 }
 
 #[ext_contract(ext_nft_receiver)]
 trait NftReceiver {
     fn nft_on_approve(
         &mut self,
-        token_id: TokenId,
+        token_id: TokenKey,
         owner_id: AccountId,
         approval_id: u64,
         msg: String,
@@ -32,12 +32,16 @@ trait NftReceiver {
 impl NftApproval for Contract {
     fn nft_is_approved(
         &self,
-        token_id: TokenId,
+        token_id: TokenKey,
         approved_account_id: AccountId,
         approval_id: Option<u64>,
     ) -> bool {
         //get the token info for the provided token id or panic with message
-        let token = self.tokens_by_id.get(&token_id).expect("Token not found");
+        let token = self
+            .tokens
+            .info_by_id
+            .get(&token_id)
+            .expect("Token not found");
 
         //if there is an aproval id stored for the provided account id:
         if let Some(approval) = token.approved_accounts.get(&approved_account_id) {
@@ -52,10 +56,14 @@ impl NftApproval for Contract {
         }
     }
 
-    fn nft_approve(&mut self, token_id: TokenId, account_id: AccountId, msg: Option<String>) {
+    fn nft_approve(&mut self, token_id: TokenKey, account_id: AccountId, msg: Option<String>) {
         assert_min_one_yocto();
         //get the token info for the provided token id or panic with message
-        let mut token = self.tokens_by_id.get(&token_id).expect("Token not found");
+        let mut token = self
+            .tokens
+            .info_by_id
+            .get(&token_id)
+            .expect("Token not found");
 
         //validate the caller is the owner
         assert_eq!(
@@ -73,7 +81,7 @@ impl NftApproval for Contract {
             .approved_accounts
             .insert(account_id.clone(), approval_id)
             .is_none();
-        self.tokens_by_id.insert(&token_id, &token);
+        self.tokens.info_by_id.insert(&token_id, &token);
 
         //withhold storage cost when needed, else refund all
         let storage_used = if is_new_approval {
@@ -98,10 +106,14 @@ impl NftApproval for Contract {
         }
     }
 
-    fn nft_revoke(&mut self, token_id: TokenId, account_id: AccountId) {
+    fn nft_revoke(&mut self, token_id: TokenKey, account_id: AccountId) {
         assert_one_yocto();
         //get the token info for the provided token id or panic with message
-        let mut token = self.tokens_by_id.get(&token_id).expect("Token not found");
+        let mut token = self
+            .tokens
+            .info_by_id
+            .get(&token_id)
+            .expect("Token not found");
 
         //validate the caller is the owner
         let sender_id = env::predecessor_account_id();
@@ -112,14 +124,18 @@ impl NftApproval for Contract {
 
         if token.approved_accounts.remove(&account_id).is_some() {
             refund_approved_account_ids_iter(sender_id, [account_id].iter());
-            self.tokens_by_id.insert(&token_id, &token);
+            self.tokens.info_by_id.insert(&token_id, &token);
         }
     }
 
-    fn nft_revoke_all(&mut self, token_id: TokenId) {
+    fn nft_revoke_all(&mut self, token_id: TokenKey) {
         assert_one_yocto();
         //get the token info for the provided token id or panic with message
-        let mut token = self.tokens_by_id.get(&token_id).expect("Token not found");
+        let mut token = self
+            .tokens
+            .info_by_id
+            .get(&token_id)
+            .expect("Token not found");
 
         //validate the caller is the owner
         let sender_id = env::predecessor_account_id();
@@ -131,7 +147,7 @@ impl NftApproval for Contract {
         if !token.approved_accounts.is_empty() {
             refund_approved_accounts(sender_id, &token.approved_accounts);
             token.approved_accounts.clear();
-            self.tokens_by_id.insert(&token_id, &token);
+            self.tokens.info_by_id.insert(&token_id, &token);
         }
     }
 }

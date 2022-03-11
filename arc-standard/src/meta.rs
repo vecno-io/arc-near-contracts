@@ -68,8 +68,14 @@ impl TokenData {
     }
 }
 
-impl NftMetadata for Contract {
-    fn nft_metadata(&self) -> ContractData {
-        self.contract_data.get().unwrap()
-    }
+#[macro_export]
+macro_rules! impl_nft_contract_data {
+    //where $data is LazyOption<ContractData>
+    ($contract: ident, $data: ident) => {
+        impl NftMetadata for Contract {
+            fn nft_metadata(&self) -> ContractData {
+                self.$data.get().unwrap()
+            }
+        }
+    };
 }

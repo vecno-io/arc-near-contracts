@@ -7,11 +7,11 @@ enum GuildType {
     None,
 }
 
-pub type GuildId = String;
+pub type GuildKey = String;
 
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Guild {
-    //manager id of the token
+    //manager id for the guild
     pub manager_id: AccountId,
     //store royalties for this token
     pub royalty: HashMap<AccountId, u32>,
@@ -25,7 +25,7 @@ pub struct Guild {
 #[serde(crate = "near_sdk::serde")]
 pub struct JsonGuild {
     //guild ID
-    pub guild_id: GuildId,
+    pub guild_id: GuildKey,
     //token count in the guild
     pub token_cnt: U128,
     //owner of the token
@@ -38,8 +38,8 @@ pub struct JsonGuild {
 #[serde(crate = "near_sdk::serde")]
 pub struct GuildData {
     pub spec: String,
+    pub tag: String,
     pub name: String,
-    pub symbol: String,
     pub icon: Option<String>,
     pub icon_hash: Option<Base64VecU8>,
     pub media: Option<String>,
@@ -49,16 +49,17 @@ pub struct GuildData {
 }
 
 pub trait ArcGuild {
-    fn arc_guild(&self, guild_id: GuildId) -> Option<JsonGuild>;
+    fn arc_guild(&self, guild_id: GuildKey) -> Option<JsonGuild>;
 
     fn arc_register_guild(
         &mut self,
         manager_id: AccountId,
+        guild_id: GuildKey,
         guild_data: GuildData,
         approval_open: bool,
         royalties: Option<HashMap<AccountId, u32>>,
         memo: Option<String>,
-    ) -> GuildId;
+    ) -> GuildKey;
 }
 
 pub trait ArcGuildEnumerator {
@@ -90,52 +91,56 @@ impl GuildData {
 }
 
 impl Contract {
-    pub(crate) fn register_token_for_guild(&mut self, guild_id: &GuildId) -> TokenId {
-        let guild_info = self
-            .guilds_by_id
-            .get(&guild_id)
-            .expect("Guild id to be valid");
+    pub(crate) fn register_token_for_guild(&mut self, guild_id: &GuildKey) -> TokenKey {
+        // let guild_info = self
+        //     .guilds
+        //     .info_by_id
+        //     .get(&guild_id)
+        //     .expect("Guild id to be valid");
 
-        let sender_id = env::predecessor_account_id();
-        if !guild_info.approval_open && guild_info.manager_id != sender_id {
-            if !guild_info.approved_accounts.contains(&sender_id) {
-                env::panic_str("Unauthorized transfer");
-            }
-        }
+        // let sender_id = env::predecessor_account_id();
+        // if !guild_info.approval_open && guild_info.manager_id != sender_id {
+        //     if !guild_info.approved_accounts.contains(&sender_id) {
+        //         env::panic_str("Unauthorized transfer");
+        //     }
+        // }
 
-        let guild_data = self
-            .guilddata_by_id
-            .get(&guild_id)
-            .expect("Guild id to be valid");
-        let asset_data = self
-            .contract_data
-            .get()
-            .expect("Contract to be initialized");
-        let mut guild_set = self
-            .tokens_per_guild
-            .get(&guild_id)
-            .expect("A guild set to be stored");
+        // let guild_data = self
+        //     .guilddata_by_id
+        //     .get(&guild_id)
+        //     .expect("Guild id to be valid");
+        // let asset_data = self
+        //     .contract_data
+        //     .get()
+        //     .expect("Contract to be initialized");
+        // let mut guild_set = self
+        //     .tokens_per_guild
+        //     .get(&guild_id)
+        //     .expect("A guild set to be stored");
 
-        let asset_key = asset_data.symbol;
-        let guild_key = guild_data.symbol;
-        let guild_idx = guild_set.len();
+        // let asset_key = asset_data.symbol;
+        // let guild_key = guild_data.symbol;
+        // let guild_idx = guild_set.len();
 
-        let token_id = format!("{:>4}:{:>4} #{:05}", asset_key, guild_key, guild_idx);
-        require!(guild_set.insert(&token_id), "Guild is out of IDs");
-        token_id
+        // let token_id = format!("{:>4}:{:>4} #{:05}", asset_key, guild_key, guild_idx);
+        // require!(guild_set.insert(&token_id), "Guild is out of IDs");
+        //token_id
+        "".to_string()
     }
 }
 
 impl ArcGuild for Contract {
-    fn arc_guild(&self, guild_id: GuildId) -> Option<JsonGuild> {
+    fn arc_guild(&self, guild_id: GuildKey) -> Option<JsonGuild> {
         //if there is some data for the token id in the token data store:
-        if let Some(guild) = self.guilds_by_id.get(&guild_id) {
-            let guilddata = self.guilddata_by_id.get(&guild_id).unwrap();
-            let guildset = self.tokens_per_guild.get(&guild_id).unwrap();
+        if let Some(guild) = self.guilds.info_by_id.get(&guild_id) {
+            let guilddata = self.guilds.data_for_id.get(&guild_id).unwrap();
+            // TODO Fix token/member count
+            //let guildset = self.guilds.members_per_guild.get(&guild_id).unwrap();
             //then return the wrapped JsonActor
             Some(JsonGuild {
                 guild_id: guild_id,
-                token_cnt: U128(guildset.len() as u128),
+                //token_cnt: U128(guildset.len() as u128),
+                token_cnt: U128(0),
                 manager_id: guild.manager_id,
                 metadata: guilddata,
             })
@@ -148,21 +153,22 @@ impl ArcGuild for Contract {
     fn arc_register_guild(
         &mut self,
         manager_id: AccountId,
+        guild_id: GuildKey,
         guild_data: GuildData,
         approval_open: bool,
         royalties: Option<HashMap<AccountId, u32>>,
         memo: Option<String>,
-    ) -> GuildId {
+    ) -> GuildKey {
         assert_min_one_yocto();
         guild_data.assert_valid();
 
-        let manager = self.manager_id.get().expect("Contract to be initialized");
-        assert_eq!(manager, env::predecessor_account_id(), "Call unauthorized");
+        // let manager = self.manager_id.get().expect("Contract to be initialized");
+        // assert_eq!(manager, env::predecessor_account_id(), "Call unauthorized");
 
-        let asset_data = self
-            .contract_data
-            .get()
-            .expect("Contract to be initialized");
+        // let asset_data = self
+        //     .contract_data
+        //     .get()
+        //     .expect("Contract to be initialized");
 
         let storage_usage = env::storage_usage();
 
@@ -184,23 +190,25 @@ impl ArcGuild for Contract {
             );
         }
 
+        // TODO: move to contract implementaion
         //create the guild and store it
-        let guild_id = format!(
-            "{}:Guild:{:06}",
-            asset_data.symbol,
-            self.guilddata_by_id.len()
-        );
+        // let guild_id = format!(
+        //     "{}:Guild:{:06}",
+        //     asset_data.symbol,
+        //     self.guilddata_by_id.len()
+        // );
+
         let guild = Guild {
-            royalty: royalty,
             manager_id: manager_id,
+            royalty: royalty,
             approval_open: approval_open,
             approved_accounts: Default::default(),
         };
         require!(
-            self.guilds_by_id.insert(&guild_id, &guild).is_none(),
-            "A guild with the generated id already exits"
+            self.guilds.info_by_id.insert(&guild_id, &guild).is_none(),
+            "A guild with the provided id already exits"
         );
-        self.guilddata_by_id.insert(&guild_id, &guild_data);
+        self.guilds.data_for_id.insert(&guild_id, &guild_data);
 
         //log an event message for the registration
         let arc_mint_log: EventLog = EventLog {
@@ -223,12 +231,13 @@ impl ArcGuild for Contract {
 
 impl ArcGuildEnumerator for Contract {
     fn arc_guild_count(&self) -> U128 {
-        U128(self.guilddata_by_id.len() as u128)
+        U128(self.guilds.data_for_id.len() as u128)
     }
 
     fn arc_guilds(&self, from_index: Option<U128>, limit: Option<u64>) -> Vec<JsonGuild> {
         let start = u128::from(from_index.unwrap_or(U128(0)));
-        self.tokendata_by_id
+        self.tokens
+            .data_for_id
             .keys()
             .skip(start as usize)
             .take(limit.unwrap_or(50) as usize)

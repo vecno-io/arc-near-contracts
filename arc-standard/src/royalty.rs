@@ -15,7 +15,7 @@ pub trait NftRoyalties {
     fn nft_transfer_payout(
         &mut self,
         receiver_id: AccountId,
-        token_id: TokenId,
+        token_id: TokenKey,
         approval_id: u64,
         memo: String,
         balance: U128,
@@ -27,14 +27,18 @@ pub trait NftRoyalties {
 impl NftRoyalties for Contract {
     fn nft_payout(&self, token_id: String, balance: U128, max_len_payout: u32) -> Payout {
         //get the token info for the provided token id or panic with message
-        let token = self.tokens_by_id.get(&token_id).expect("Token not found");
+        let token = self
+            .tokens
+            .info_by_id
+            .get(&token_id)
+            .expect("Token not found");
         self.payouts(&token, u128::from(balance), max_len_payout)
     }
 
     fn nft_transfer_payout(
         &mut self,
         receiver_id: AccountId,
-        token_id: TokenId,
+        token_id: TokenKey,
         approval_id: u64,
         memo: String,
         balance: U128,

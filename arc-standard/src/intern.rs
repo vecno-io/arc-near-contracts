@@ -85,38 +85,47 @@ pub(crate) fn royalty_to_payout(royalty_percentage: u32, amount_to_pay: Balance)
 }
 
 impl Contract {
-    pub(crate) fn add_token_to_owner(&mut self, token_id: &TokenId, owner_id: &AccountId) -> bool {
+    // TODO Rename token for to actor for
+    // TODO Implement actors/guilds per owner update
+    pub(crate) fn add_token_to_owner(&mut self, token_id: &TokenKey, owner_id: &AccountId) -> bool {
         let mut created = false;
         let owner_key = hash_storage_key(owner_id.as_bytes());
-        let mut tokens_set = self.tokens_per_owner.get(&owner_key).unwrap_or_else(|| {
-            created = true;
-            UnorderedSet::new(
-                StorageKey::TokensPerOwnerSet { owner_key }
-                    .try_to_vec()
-                    .unwrap(),
-            )
-        });
+        let mut tokens_set = self
+            .tokens
+            .list_per_owner
+            .get(&owner_key)
+            .unwrap_or_else(|| {
+                created = true;
+                UnorderedSet::new(
+                    StorageKey::TokensPerOwnerSet { owner_key }
+                        .try_to_vec()
+                        .unwrap(),
+                )
+            });
 
         tokens_set.insert(token_id);
-        self.tokens_per_owner.insert(&owner_key, &tokens_set);
+        self.tokens.list_per_owner.insert(&owner_key, &tokens_set);
 
         created
     }
 
-    pub(crate) fn remove_token_from_owner(&mut self, token_id: &TokenId, account_id: &AccountId) {
+    // TODO Rename token for to actor for
+    // TODO Implement actors/guilds per owner update
+    pub(crate) fn remove_token_from_owner(&mut self, token_id: &TokenKey, account_id: &AccountId) {
         let owner_key = hash_storage_key(account_id.as_bytes());
 
         let mut tokens_set = self
-            .tokens_per_owner
+            .tokens
+            .list_per_owner
             .get(&owner_key)
             .expect("Sender must own the token");
 
         tokens_set.remove(token_id);
 
         if tokens_set.is_empty() {
-            self.tokens_per_owner.remove(&owner_key);
+            self.tokens.list_per_owner.remove(&owner_key);
         } else {
-            self.tokens_per_owner.insert(&owner_key, &tokens_set);
+            self.tokens.list_per_owner.insert(&owner_key, &tokens_set);
         }
     }
 
@@ -124,30 +133,32 @@ impl Contract {
         &mut self,
         sender_id: &AccountId,
         receiver_id: &AccountId,
-        token_id: &TokenId,
+        token_id: &TokenKey,
         approval_id: Option<u64>,
         memo: Option<String>,
     ) -> Token {
-        //get the token info for the provided token id or panic with message
         let token = self
-            .tokens_by_id
+            .tokens
+            .info_by_id
             .get(token_id)
             .expect("Token info not found");
 
-        //if the sender doesn't equal the owner, we check if the sender is in the approval list
+        //no sending it to themselves
+        assert_ne!(
+            &token.owner_id, receiver_id,
+            "The token owner and the receiver should be different"
+        );
+
+        //check the approval list when not owner
         if sender_id != &token.owner_id {
-            //if the token's approved account IDs doesn't contain the sender, we panic
             if !token.approved_accounts.contains_key(sender_id) {
                 env::panic_str("Unauthorized transfer");
             }
 
-            // If they included an approval_id, check if the sender's actual approval_id is the same as the one included
             if let Some(enforced_approval_id) = approval_id {
-                //get the actual approval ID
                 let actual_approval_id = token
                     .approved_accounts
                     .get(sender_id)
-                    //if the sender isn't in the map, we panic
                     .expect("Sender is not authorized to transfer");
 
                 assert_eq!(
@@ -156,12 +167,6 @@ impl Contract {
                 );
             }
         }
-
-        //we make sure that the sender isn't sending the token to themselves
-        assert_ne!(
-            &token.owner_id, receiver_id,
-            "The token owner and the receiver should be different"
-        );
 
         //remove the token fro mthe old owner and add it to the new owner
         self.remove_token_from_owner(token_id, &token.owner_id);
@@ -174,7 +179,7 @@ impl Contract {
             approval_index: token.approval_index,
             royalty: token.royalty.clone(),
         };
-        self.tokens_by_id.insert(token_id, &new_token);
+        self.tokens.info_by_id.insert(token_id, &new_token);
 
         //log the memo message if one is provided
         if let Some(memo) = memo.as_ref() {

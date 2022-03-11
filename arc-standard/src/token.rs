@@ -2,22 +2,26 @@ use crate::*;
 
 use std::collections::HashMap;
 
-pub type TokenId = String;
+pub type TokenKey = String;
 
 #[derive(BorshDeserialize, BorshSerialize)]
 enum TokenType {
     None,
+    Actor,
+    Member,
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Token {
+    // //type id of the token
+    // pub type_id: TokenType,
     //owner id of the token
     pub owner_id: AccountId,
-    //store royalties for this token
+    //royalties for this token
     pub royalty: HashMap<AccountId, u32>,
-    //the next approval ID to give out.
+    //approval index tracker
     pub approval_index: u64,
-    //map approved account IDs to an approval ID
+    //approved account mapped to an index
     pub approved_accounts: HashMap<AccountId, u64>,
 }
 
@@ -25,7 +29,7 @@ pub struct Token {
 #[serde(crate = "near_sdk::serde")]
 pub struct JsonToken {
     //token ID
-    pub token_id: TokenId,
+    pub token_id: TokenKey,
     //owner of the token
     pub owner_id: AccountId,
     //token metadata
@@ -34,13 +38,13 @@ pub struct JsonToken {
 
 pub trait NftToken {
     //view call for returning the token data for the provided id
-    fn nft_token(&self, token_id: TokenId) -> Option<JsonToken>;
+    fn nft_token(&self, token_id: TokenKey) -> Option<JsonToken>;
 
     //transfers a token to a receiver ID
     fn nft_transfer(
         &mut self,
         receiver_id: AccountId,
-        token_id: TokenId,
+        token_id: TokenKey,
         approval_id: u64,
         memo: Option<String>,
     );
@@ -50,7 +54,7 @@ pub trait NftToken {
     fn nft_transfer_call(
         &mut self,
         receiver_id: AccountId,
-        token_id: TokenId,
+        token_id: TokenKey,
         approval_id: u64,
         memo: Option<String>,
         msg: String,
@@ -78,7 +82,7 @@ trait NftReceiver {
         &mut self,
         sender_id: AccountId,
         previous_owner_id: AccountId,
-        token_id: TokenId,
+        token_id: TokenKey,
         msg: String,
     ) -> Promise;
 }
@@ -90,7 +94,7 @@ trait NftResolver {
         authorized_id: Option<String>,
         owner_id: AccountId,
         receiver_id: AccountId,
-        token_id: TokenId,
+        token_id: TokenKey,
         approved_account_ids: HashMap<AccountId, u64>,
         memo: Option<String>,
     ) -> bool;
@@ -102,7 +106,7 @@ trait NftResolver {
         authorized_id: Option<String>,
         owner_id: AccountId,
         receiver_id: AccountId,
-        token_id: TokenId,
+        token_id: TokenKey,
         approved_account_ids: HashMap<AccountId, u64>,
         memo: Option<String>,
     ) -> bool;
@@ -110,10 +114,10 @@ trait NftResolver {
 
 #[near_bindgen]
 impl NftToken for Contract {
-    fn nft_token(&self, token_id: TokenId) -> Option<JsonToken> {
+    fn nft_token(&self, token_id: TokenKey) -> Option<JsonToken> {
         //if there is some data for the token id in the token data store:
-        if let Some(tokendata) = self.tokendata_by_id.get(&token_id) {
-            let token = self.tokens_by_id.get(&token_id).unwrap();
+        if let Some(tokendata) = self.tokens.data_for_id.get(&token_id) {
+            let token = self.tokens.info_by_id.get(&token_id).unwrap();
             //then return the wrapped JsonActor
             Some(JsonToken {
                 token_id: token_id,
@@ -130,7 +134,7 @@ impl NftToken for Contract {
     fn nft_transfer(
         &mut self,
         receiver_id: AccountId,
-        token_id: TokenId,
+        token_id: TokenKey,
         approval_id: u64,
         memo: Option<String>,
     ) {
@@ -143,7 +147,7 @@ impl NftToken for Contract {
     fn nft_transfer_call(
         &mut self,
         receiver_id: AccountId,
-        token_id: TokenId,
+        token_id: TokenKey,
         approval_id: u64,
         memo: Option<String>,
         msg: String,
@@ -205,7 +209,7 @@ impl NftResolver for Contract {
         authorized_id: Option<String>,
         owner_id: AccountId,
         receiver_id: AccountId,
-        token_id: TokenId,
+        token_id: TokenKey,
         approved_account_ids: HashMap<AccountId, u64>,
         memo: Option<String>,
     ) -> bool {
@@ -220,7 +224,7 @@ impl NftResolver for Contract {
         }
 
         //if there is some token info, and the token is set to the new owner, undo the transaction
-        let mut token = if let Some(token) = self.tokens_by_id.get(&token_id) {
+        let mut token = if let Some(token) = self.tokens.info_by_id.get(&token_id) {
             if token.owner_id != receiver_id {
                 refund_approved_accounts(owner_id, &approved_account_ids);
                 return true;
@@ -243,7 +247,7 @@ impl NftResolver for Contract {
 
         //restore the old approved accounts information
         token.approved_accounts = approved_account_ids;
-        self.tokens_by_id.insert(&token_id, &token);
+        self.tokens.info_by_id.insert(&token_id, &token);
 
         //log an event message for the undo transfer
         let nft_transfer_log: EventLog = EventLog {
@@ -265,12 +269,13 @@ impl NftResolver for Contract {
 
 impl NftTokenEnumerator for Contract {
     fn nft_total_supply(&self) -> U128 {
-        U128(self.tokendata_by_id.len() as u128)
+        U128(self.tokens.data_for_id.len() as u128)
     }
 
     fn nft_tokens(&self, from_index: Option<U128>, limit: Option<u64>) -> Vec<JsonToken> {
         let start = u128::from(from_index.unwrap_or(U128(0)));
-        self.tokendata_by_id
+        self.tokens
+            .data_for_id
             .keys()
             .skip(start as usize)
             .take(limit.unwrap_or(50) as usize)
@@ -280,7 +285,8 @@ impl NftTokenEnumerator for Contract {
 
     fn nft_supply_for_owner(&self, account_id: AccountId) -> U128 {
         if let Some(tokens_for_owner_set) = self
-            .tokens_per_owner
+            .tokens
+            .list_per_owner
             .get(&hash_storage_key(account_id.as_bytes()))
         {
             U128(tokens_for_owner_set.len() as u128)
@@ -296,7 +302,8 @@ impl NftTokenEnumerator for Contract {
         limit: Option<u64>,
     ) -> Vec<JsonToken> {
         if let Some(tokens_for_owner_set) = self
-            .tokens_per_owner
+            .tokens
+            .list_per_owner
             .get(&hash_storage_key(account_id.as_bytes()))
         {
             let start = u128::from(from_index.unwrap_or(U128(0)));

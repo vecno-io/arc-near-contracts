@@ -41,72 +41,109 @@ pub enum StorageKey {
     TokensPerOwnerSet { owner_key: CryptoHash },
 }
 
+pub type Admin = LazyOption<TokenKey>;
+
+// TODO Replace CryptoHash > AccountKey
+// Map account sting on to a [64]bytes array.
+pub type AccountKey = [u8; 64];
+
+#[derive(BorshDeserialize, BorshSerialize)]
+pub struct Actors {
+    //keeps track of the token struct for a given token ID
+    pub info_by_id: LookupMap<TokenKey, Token>,
+    //keeps track of the tokens actordata for a given token ID
+    pub data_for_id: UnorderedMap<TokenKey, ActorData>,
+}
+
+#[derive(BorshDeserialize, BorshSerialize)]
+pub struct Guilds {
+    //keeps track of the guild struct for a given guild ID
+    pub info_by_id: LookupMap<GuildKey, Guild>,
+    //keeps track of the guilds guilddata for a given guild ID
+    pub data_for_id: UnorderedMap<GuildKey, GuildData>,
+}
+
+#[derive(BorshDeserialize, BorshSerialize)]
+pub struct Tokens {
+    //keeps track of the token struct for a given token ID
+    pub info_by_id: LookupMap<TokenKey, Token>,
+    //keeps track of the tokens tokendata for a given token ID
+    pub data_for_id: UnorderedMap<TokenKey, TokenData>,
+    //keeps track of all the tokens for a given account
+    pub list_per_owner: LookupMap<CryptoHash, UnorderedSet<TokenKey>>,
+}
+
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct Contract {
-    //contract manager
-    pub manager_id: LazyOption<AccountId>,
-    //keeps track of the contract data for a contract
-    pub contract_data: LazyOption<ContractData>,
+    admin: Admin,
+    actors: Actors,
+    guilds: Guilds,
+    tokens: Tokens,
+}
 
-    //keeps track of the guild struct for a given guild ID
-    pub guilds_by_id: LookupMap<GuildId, Guild>,
-    //keeps track of the token struct for a given token ID
-    pub tokens_by_id: LookupMap<TokenId, Token>,
+impl Actors {
+    pub fn new() -> Self {
+        let this = Self {
+            info_by_id: LookupMap::new(StorageKey::TokensById.try_to_vec().unwrap()),
+            data_for_id: UnorderedMap::new(StorageKey::TokendataById.try_to_vec().unwrap()),
+        };
+        this
+    }
+}
 
-    //keeps track of the guilds guilddata for a given guild ID
-    pub guilddata_by_id: UnorderedMap<GuildId, GuildData>,
-    //keeps track of the tokens tokendata for a given token ID
-    pub tokendata_by_id: UnorderedMap<TokenId, TokenData>,
-    //keeps track of the tokens actordata for a given token ID
-    pub actordata_by_id: UnorderedMap<TokenId, ActorData>,
+impl Guilds {
+    pub fn new() -> Self {
+        let this = Self {
+            info_by_id: LookupMap::new(StorageKey::TokensById.try_to_vec().unwrap()),
+            data_for_id: UnorderedMap::new(StorageKey::TokendataById.try_to_vec().unwrap()),
+        };
+        this
+    }
+}
 
-    //keeps track of all the guild for a given guild
-    pub tokens_per_guild: LookupMap<GuildId, UnorderedSet<TokenId>>,
-    //keeps track of all the tokens for a given account
-    pub tokens_per_owner: LookupMap<CryptoHash, UnorderedSet<TokenId>>,
+impl Tokens {
+    pub fn new() -> Self {
+        let this = Self {
+            info_by_id: LookupMap::new(StorageKey::TokensById.try_to_vec().unwrap()),
+            data_for_id: UnorderedMap::new(StorageKey::TokendataById.try_to_vec().unwrap()),
+            list_per_owner: LookupMap::new(StorageKey::TokensPerOwner.try_to_vec().unwrap()),
+        };
+        this
+    }
 }
 
 #[near_bindgen]
 impl Contract {
     #[init]
-    pub fn new(manager_id: AccountId, contract_data: ContractData) -> Self {
-        contract_data.assert_valid();
+    pub fn new(manager_id: AccountId, guild_data: GuildData) -> Self {
+        require!(!env::state_exists(), "Already initialized");
+        guild_data.assert_valid();
 
-        //initialize the contract data and return it
+        let token_id = "todo_id".to_string();
+        // ToDo: Register the managing guild on to slot 0
+
         let this = Self {
-            manager_id: LazyOption::new(
-                StorageKey::ManagerId.try_to_vec().unwrap(),
-                Some(&manager_id),
-            ),
-            contract_data: LazyOption::new(
-                StorageKey::ContractData.try_to_vec().unwrap(),
-                Some(&contract_data),
-            ),
-
-            guilds_by_id: LookupMap::new(StorageKey::GuildsById.try_to_vec().unwrap()),
-            tokens_by_id: LookupMap::new(StorageKey::TokensById.try_to_vec().unwrap()),
-
-            guilddata_by_id: UnorderedMap::new(StorageKey::GuilddataById.try_to_vec().unwrap()),
-            tokendata_by_id: UnorderedMap::new(StorageKey::TokendataById.try_to_vec().unwrap()),
-            actordata_by_id: UnorderedMap::new(StorageKey::ActordataById.try_to_vec().unwrap()),
-
-            tokens_per_guild: LookupMap::new(StorageKey::TokensPerGuild.try_to_vec().unwrap()),
-            tokens_per_owner: LookupMap::new(StorageKey::TokensPerOwner.try_to_vec().unwrap()),
+            admin: Admin::new(StorageKey::ManagerId.try_to_vec().unwrap(), Some(&token_id)),
+            actors: Actors::new(),
+            guilds: Guilds::new(),
+            tokens: Tokens::new(),
         };
         this
     }
+
     #[init]
-    pub fn new_default_meta(owner_id: AccountId) -> Self {
-        //calls new: with default contract data and the owner_id
+    pub fn new_default_meta(manager_id: AccountId) -> Self {
         Self::new(
-            owner_id,
-            ContractData {
+            manager_id,
+            GuildData {
                 spec: NFT_METADATA_SPEC.to_string(),
-                name: "Story Arc Assets Contract".to_string(),
-                symbol: "ARC-A".to_string(),
+                tag: "Arc-Core".to_string(),
+                name: "The Core Guild".to_string(),
                 icon: None,
-                base_uri: None,
+                icon_hash: None,
+                media: None,
+                media_hash: None,
                 reference: None,
                 reference_hash: None,
             },

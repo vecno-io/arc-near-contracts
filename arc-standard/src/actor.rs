@@ -6,7 +6,7 @@ use std::collections::HashMap;
 #[serde(crate = "near_sdk::serde")]
 pub struct JsonActor {
     //token ID
-    pub token_id: TokenId,
+    pub token_id: TokenKey,
     //owner of the token
     pub owner_id: AccountId,
     //token metadata
@@ -81,17 +81,18 @@ pub struct Attributes {
 
 pub trait ArcActor {
     //view call for returning the actor data for the provided id
-    fn arc_actor(&self, token_id: TokenId) -> Option<JsonActor>;
+    fn arc_actor(&self, token_id: TokenKey) -> Option<JsonActor>;
 
     //register a new actor with the provided data, returns the token id
     fn arc_register_actor(
         &mut self,
         receiver_id: AccountId,
-        actor_data: ActorData,
+        token_id: TokenKey,
         token_data: TokenData,
+        actor_data: ActorData,
         royalties: Option<HashMap<AccountId, u32>>,
         memo: Option<String>,
-    ) -> TokenId;
+    ) -> TokenKey;
 }
 
 pub trait ArcActorEnumerator {
@@ -132,11 +133,11 @@ impl Name {
 
 #[near_bindgen]
 impl ArcActor for Contract {
-    fn arc_actor(&self, token_id: TokenId) -> Option<JsonActor> {
+    fn arc_actor(&self, token_id: TokenKey) -> Option<JsonActor> {
         //if there is some data for the actor id in the actor data store:
-        if let Some(actordata) = self.actordata_by_id.get(&token_id) {
-            let tokendata = self.tokendata_by_id.get(&token_id).unwrap();
-            let token = self.tokens_by_id.get(&token_id).unwrap();
+        if let Some(actordata) = self.actors.data_for_id.get(&token_id) {
+            let tokendata = self.tokens.data_for_id.get(&token_id).unwrap();
+            let token = self.tokens.info_by_id.get(&token_id).unwrap();
             //then return the wrapped JsonActor
             Some(JsonActor {
                 token_id: token_id,
@@ -154,19 +155,15 @@ impl ArcActor for Contract {
     fn arc_register_actor(
         &mut self,
         receiver_id: AccountId,
-        actor_data: ActorData,
+        token_id: TokenKey,
         token_data: TokenData,
+        actor_data: ActorData,
         royalties: Option<HashMap<AccountId, u32>>,
         memo: Option<String>,
-    ) -> TokenId {
+    ) -> TokenKey {
         assert_min_one_yocto();
         actor_data.assert_valid();
         token_data.assert_valid();
-
-        let asset_data = self
-            .contract_data
-            .get()
-            .expect("Contract to be initialized");
 
         let storage_usage = env::storage_usage();
 
@@ -188,12 +185,14 @@ impl ArcActor for Contract {
             );
         }
 
+        // TODO: move to contract implementaion
         //create the token and store it
-        let token_id = format!(
-            "{}:Actor:{:06}",
-            asset_data.symbol,
-            self.actordata_by_id.len()
-        );
+        // let token_id = format!(
+        //     "{}:Actor:{:06}",
+        //     asset_data.symbol,
+        //     self.actors.data_for_id.len()
+        // );
+
         let token = Token {
             owner_id: receiver_id,
             royalty: royalty,
@@ -201,11 +200,11 @@ impl ArcActor for Contract {
             approved_accounts: Default::default(),
         };
         require!(
-            self.tokens_by_id.insert(&token_id, &token).is_none(),
-            "A token with the generated id already exits"
+            self.tokens.info_by_id.insert(&token_id, &token).is_none(),
+            "A token with the provided id already exits"
         );
-        self.actordata_by_id.insert(&token_id, &actor_data);
-        self.tokendata_by_id.insert(&token_id, &token_data);
+        self.actors.data_for_id.insert(&token_id, &actor_data);
+        self.tokens.data_for_id.insert(&token_id, &token_data);
 
         let created = self.add_token_to_owner(&token_id, &token.owner_id);
 
@@ -241,12 +240,13 @@ impl ArcActor for Contract {
 
 impl ArcActorEnumerator for Contract {
     fn arc_actor_count(&self) -> U128 {
-        U128(self.actordata_by_id.len() as u128)
+        U128(self.actors.data_for_id.len() as u128)
     }
 
     fn arc_actors(&self, from_index: Option<U128>, limit: Option<u64>) -> Vec<JsonActor> {
         let start = u128::from(from_index.unwrap_or(U128(0)));
-        self.tokendata_by_id
+        self.tokens
+            .data_for_id
             .keys()
             .skip(start as usize)
             .take(limit.unwrap_or(50) as usize)
@@ -256,7 +256,8 @@ impl ArcActorEnumerator for Contract {
 
     fn arc_actor_supply_for_owner(&self, account_id: AccountId) -> U128 {
         if let Some(tokens_for_owner_set) = self
-            .tokens_per_owner
+            .tokens
+            .list_per_owner
             .get(&hash_storage_key(account_id.as_bytes()))
         {
             U128(tokens_for_owner_set.len() as u128)
@@ -272,7 +273,8 @@ impl ArcActorEnumerator for Contract {
         limit: Option<u64>,
     ) -> Vec<JsonActor> {
         if let Some(tokens_for_owner_set) = self
-            .tokens_per_owner
+            .tokens
+            .list_per_owner
             .get(&hash_storage_key(account_id.as_bytes()))
         {
             let start = u128::from(from_index.unwrap_or(U128(0)));
