@@ -194,6 +194,7 @@ impl ArcActor for Contract {
         // );
 
         let token = Token {
+            type_id: TokenType::Actor,
             owner_id: receiver_id,
             royalty: royalty,
             approval_index: 0,

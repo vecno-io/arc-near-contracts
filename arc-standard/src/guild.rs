@@ -1,40 +1,53 @@
 use crate::*;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
-#[derive(BorshDeserialize, BorshSerialize)]
-enum GuildType {
-    None,
+const MAX_BASE_POINTS_TOTAL: u16 = 10000;
+
+#[derive(Copy, Clone, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
+#[serde(crate = "near_sdk::serde")]
+pub enum GuildType {
+    Base,
 }
 
-pub type GuildKey = String;
+#[derive(Clone, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct GuildKey(String);
+
+impl ToString for GuildKey {
+    fn to_string(&self) -> String {
+        self.0.to_string()
+    }
+}
+
+impl From<String> for GuildKey {
+    fn from(item: String) -> Self {
+        GuildKey { 0: item }
+    }
+}
 
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Guild {
-    //manager id for the guild
-    pub manager_id: AccountId,
-    //store royalties for this token
-    pub royalty: HashMap<AccountId, u32>,
-    //allow minting calls from all account
-    pub approval_open: bool,
-    //map approved account IDs to an approval ID
-    pub approved_accounts: HashSet<AccountId>,
+    //ceo id for the guild
+    pub ceo_id: AccountId,
+    //type id for the guild
+    pub type_id: GuildType,
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct JsonGuild {
-    //guild ID
-    pub guild_id: GuildKey,
-    //token count in the guild
-    pub token_cnt: U128,
-    //owner of the token
-    pub manager_id: AccountId,
-    //token metadata
-    pub metadata: GuildData,
+    //guild id
+    pub id: GuildKey,
+    //ceo of the guild
+    pub ceo: AccountId,
+    //data for the guild
+    pub data: GuildData,
+    //board of the members
+    pub board: GuildBoard,
 }
 
-#[derive(Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize)]
+#[derive(Serialize, Deserialize, BorshSerialize, BorshDeserialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct GuildData {
     pub spec: String,
@@ -48,18 +61,25 @@ pub struct GuildData {
     pub reference_hash: Option<Base64VecU8>,
 }
 
+#[derive(Serialize, Deserialize, BorshSerialize, BorshDeserialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct GuildBoard {
+    pub size: u16,
+    pub share: u16,
+    pub members: HashMap<AccountId, u16>,
+}
+
 pub trait ArcGuild {
     fn arc_guild(&self, guild_id: GuildKey) -> Option<JsonGuild>;
 
     fn arc_register_guild(
         &mut self,
-        manager_id: AccountId,
-        guild_id: GuildKey,
+        ceo_id: AccountId,
+        guild_key: GuildKey,
         guild_data: GuildData,
-        approval_open: bool,
-        royalties: Option<HashMap<AccountId, u32>>,
+        guild_board: GuildBoard,
         memo: Option<String>,
-    ) -> GuildKey;
+    );
 }
 
 pub trait ArcGuildEnumerator {
@@ -72,123 +92,82 @@ impl GuildData {
     pub fn assert_valid(&self) {
         require!(self.icon.is_some() == self.icon_hash.is_some());
         if let Some(icon_hash) = &self.icon_hash {
-            require!(icon_hash.0.len() == 32, "Icon hash has to be 32 bytes");
+            require!(icon_hash.0.len() == 32, "Icon hash must be 32 bytes");
         }
-
         require!(self.media.is_some() == self.media_hash.is_some());
         if let Some(media_hash) = &self.media_hash {
-            require!(media_hash.0.len() == 32, "Media hash has to be 32 bytes");
+            require!(media_hash.0.len() == 32, "Media hash must be 32 bytes");
         }
-
         require!(self.reference.is_some() == self.reference_hash.is_some());
         if let Some(reference_hash) = &self.reference_hash {
             require!(
                 reference_hash.0.len() == 32,
-                "Reference hash has to be 32 bytes"
+                "Reference hash must be 32 bytes"
             );
         }
     }
 }
 
-impl Contract {
-    pub(crate) fn register_token_for_guild(&mut self, guild_id: &GuildKey) -> TokenKey {
-        // let guild_info = self
-        //     .guilds
-        //     .info_by_id
-        //     .get(&guild_id)
-        //     .expect("Guild id to be valid");
-
-        // let sender_id = env::predecessor_account_id();
-        // if !guild_info.approval_open && guild_info.manager_id != sender_id {
-        //     if !guild_info.approved_accounts.contains(&sender_id) {
-        //         env::panic_str("Unauthorized transfer");
-        //     }
-        // }
-
-        // let guild_data = self
-        //     .guilddata_by_id
-        //     .get(&guild_id)
-        //     .expect("Guild id to be valid");
-        // let asset_data = self
-        //     .contract_data
-        //     .get()
-        //     .expect("Contract to be initialized");
-        // let mut guild_set = self
-        //     .tokens_per_guild
-        //     .get(&guild_id)
-        //     .expect("A guild set to be stored");
-
-        // let asset_key = asset_data.symbol;
-        // let guild_key = guild_data.symbol;
-        // let guild_idx = guild_set.len();
-
-        // let token_id = format!("{:>4}:{:>4} #{:05}", asset_key, guild_key, guild_idx);
-        // require!(guild_set.insert(&token_id), "Guild is out of IDs");
-        //token_id
-        "".to_string()
+impl GuildBoard {
+    pub fn assert_valid(&self) {
+        require!(
+            (self.size as usize) >= self.members.len(),
+            format!(
+                "Can not have more members ({}) then board size ({})",
+                self.members.len(),
+                self.size
+            )
+        );
+        require!(
+            MAX_BASE_POINTS_TOTAL >= self.share,
+            format!(
+                "The boards share ({}) can not be more then max base points ({})",
+                self.share, MAX_BASE_POINTS_TOTAL
+            )
+        );
+        let mut total: u16 = 0;
+        for amount in self.members.values() {
+            total += amount;
+        }
+        require!(
+            MAX_BASE_POINTS_TOTAL >= total,
+            format!(
+                "Total member shares ({}) can not be more then max base points ({})",
+                total, MAX_BASE_POINTS_TOTAL
+            )
+        );
     }
 }
 
 impl ArcGuild for Contract {
-    fn arc_guild(&self, guild_id: GuildKey) -> Option<JsonGuild> {
-        //if there is some data for the token id in the token data store:
-        if let Some(guild) = self.guilds.info_by_id.get(&guild_id) {
-            let guilddata = self.guilds.data_for_id.get(&guild_id).unwrap();
-            // TODO Fix token/member count
-            //let guildset = self.guilds.members_per_guild.get(&guild_id).unwrap();
-            //then return the wrapped JsonActor
+    fn arc_guild(&self, guild_key: GuildKey) -> Option<JsonGuild> {
+        if let Some(guild) = self.guilds.info_by_id.get(&guild_key) {
+            let data = self.guilds.data_for_id.get(&guild_key).unwrap();
+            let board = self.guilds.board_for_id.get(&guild_key).unwrap();
             Some(JsonGuild {
-                guild_id: guild_id,
-                //token_cnt: U128(guildset.len() as u128),
-                token_cnt: U128(0),
-                manager_id: guild.manager_id,
-                metadata: guilddata,
+                id: guild_key,
+                ceo: guild.ceo_id,
+                data: data,
+                board: board,
             })
         } else {
-            //else return None
             None
         }
     }
 
     fn arc_register_guild(
         &mut self,
-        manager_id: AccountId,
-        guild_id: GuildKey,
+        ceo_id: AccountId,
+        guild_key: GuildKey,
         guild_data: GuildData,
-        approval_open: bool,
-        royalties: Option<HashMap<AccountId, u32>>,
+        guild_board: GuildBoard,
         memo: Option<String>,
-    ) -> GuildKey {
+    ) {
         assert_min_one_yocto();
         guild_data.assert_valid();
-
-        // let manager = self.manager_id.get().expect("Contract to be initialized");
-        // assert_eq!(manager, env::predecessor_account_id(), "Call unauthorized");
-
-        // let asset_data = self
-        //     .contract_data
-        //     .get()
-        //     .expect("Contract to be initialized");
+        guild_board.assert_valid();
 
         let storage_usage = env::storage_usage();
-
-        //verify royalties
-        let mut total = 0;
-        let mut royalty = HashMap::new();
-        if let Some(royalties) = royalties {
-            require!(
-                royalties.len() < 5,
-                "Cannot add more than 4 royalty amounts per guild"
-            );
-            for (account, amount) in royalties {
-                royalty.insert(account, amount);
-                total += amount;
-            }
-            require!(
-                total <= MAX_TOTAL_ROYALTIES,
-                "The total of all royalties can not be larger than 10000"
-            );
-        }
 
         // TODO: move to contract implementaion
         //create the guild and store it
@@ -199,33 +178,23 @@ impl ArcGuild for Contract {
         // );
 
         let guild = Guild {
-            manager_id: manager_id,
-            royalty: royalty,
-            approval_open: approval_open,
-            approved_accounts: Default::default(),
+            ceo_id: ceo_id,
+            type_id: GuildType::Base,
         };
         require!(
-            self.guilds.info_by_id.insert(&guild_id, &guild).is_none(),
+            self.guilds.info_by_id.insert(&guild_key, &guild).is_none(),
             "A guild with the provided id already exits"
         );
-        self.guilds.data_for_id.insert(&guild_id, &guild_data);
+        self.guilds.data_for_id.insert(&guild_key, &guild_data);
+        self.guilds.board_for_id.insert(&guild_key, &guild_board);
 
-        //log an event message for the registration
-        let arc_mint_log: EventLog = EventLog {
-            version: EVENT_ARC_METADATA_SPEC.to_string(),
-            standard: EVENT_ARC_STANDARD_NAME.to_string(),
-            event: EventLogVariant::ArcMint(vec![ArcMintLog {
-                owner_id: guild.manager_id.to_string(),
-                token_type: "arc:guild".to_string(),
-                token_list: vec![guild_id.to_string()],
-                memo,
-            }]),
-        };
-        env::log_str(&arc_mint_log.to_string());
+        // TODO: Implement events for guild registration
+        if let Some(message) = memo {
+            env::log_str(&message);
+        }
 
         //refund unused storage fees and return the id to the caller,
         refund_storage_deposit(env::storage_usage() - storage_usage);
-        guild_id
     }
 }
 
@@ -236,12 +205,12 @@ impl ArcGuildEnumerator for Contract {
 
     fn arc_guilds(&self, from_index: Option<U128>, limit: Option<u64>) -> Vec<JsonGuild> {
         let start = u128::from(from_index.unwrap_or(U128(0)));
-        self.tokens
+        self.guilds
             .data_for_id
             .keys()
             .skip(start as usize)
             .take(limit.unwrap_or(50) as usize)
-            .map(|guild_id| self.arc_guild(guild_id.clone()).unwrap())
+            .map(|guild_key| self.arc_guild(guild_key.clone()).unwrap())
             .collect()
     }
 }

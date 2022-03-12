@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LazyOption, LookupMap, UnorderedMap, UnorderedSet};
 use near_sdk::json_types::{Base64VecU8, U128};
@@ -41,35 +43,33 @@ pub enum StorageKey {
     TokensPerOwnerSet { owner_key: CryptoHash },
 }
 
-pub type Admin = LazyOption<TokenKey>;
-
-// TODO Replace CryptoHash > AccountKey
-// Map account sting on to a [64]bytes array.
-pub type AccountKey = [u8; 64];
+pub type Admin = LazyOption<GuildKey>;
 
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Actors {
-    //keeps track of the token struct for a given token ID
+    //keeps track of the token info for a given token key
     pub info_by_id: LookupMap<TokenKey, Token>,
-    //keeps track of the tokens actordata for a given token ID
+    //keeps track of the tokens data for a given token key
     pub data_for_id: UnorderedMap<TokenKey, ActorData>,
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Guilds {
-    //keeps track of the guild struct for a given guild ID
+    //keeps track of the guild info for a given guild key
     pub info_by_id: LookupMap<GuildKey, Guild>,
-    //keeps track of the guilds guilddata for a given guild ID
+    //keeps track of the guilds data for a given guild key
     pub data_for_id: UnorderedMap<GuildKey, GuildData>,
+    //keeps track of the guilds board for a given guild key
+    pub board_for_id: UnorderedMap<GuildKey, GuildBoard>,
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Tokens {
-    //keeps track of the token struct for a given token ID
+    //keeps track of the token info for a given token key
     pub info_by_id: LookupMap<TokenKey, Token>,
-    //keeps track of the tokens tokendata for a given token ID
+    //keeps track of the tokens data for a given token key
     pub data_for_id: UnorderedMap<TokenKey, TokenData>,
-    //keeps track of all the tokens for a given account
+    //keeps track of all the tokens for a given account key
     pub list_per_owner: LookupMap<CryptoHash, UnorderedSet<TokenKey>>,
 }
 
@@ -97,6 +97,7 @@ impl Guilds {
         let this = Self {
             info_by_id: LookupMap::new(StorageKey::TokensById.try_to_vec().unwrap()),
             data_for_id: UnorderedMap::new(StorageKey::TokendataById.try_to_vec().unwrap()),
+            board_for_id: UnorderedMap::new(StorageKey::TokendataById.try_to_vec().unwrap()),
         };
         this
     }
@@ -116,26 +117,36 @@ impl Tokens {
 #[near_bindgen]
 impl Contract {
     #[init]
-    pub fn new(manager_id: AccountId, guild_data: GuildData) -> Self {
+    pub fn new(
+        ceo_id: AccountId,
+        guild_key: GuildKey,
+        guild_data: GuildData,
+        guild_board: GuildBoard,
+    ) -> Self {
         require!(!env::state_exists(), "Already initialized");
         guild_data.assert_valid();
+        guild_board.assert_valid();
 
-        let token_id = "todo_id".to_string();
-        // ToDo: Register the managing guild on to slot 0
-
-        let this = Self {
-            admin: Admin::new(StorageKey::ManagerId.try_to_vec().unwrap(), Some(&token_id)),
+        let mut this = Self {
+            admin: Admin::new(
+                StorageKey::ManagerId.try_to_vec().unwrap(),
+                Some(&guild_key),
+            ),
             actors: Actors::new(),
             guilds: Guilds::new(),
             tokens: Tokens::new(),
         };
+        this.arc_register_guild(ceo_id, guild_key, guild_data, guild_board, None);
         this
     }
 
     #[init]
-    pub fn new_default_meta(manager_id: AccountId) -> Self {
+    pub fn new_default_guild(ceo_id: AccountId, board: AccountId) -> Self {
+        let mut members = HashMap::new();
+        members.insert(board, 10000);
         Self::new(
-            manager_id,
+            ceo_id,
+            GuildKey::from("admin:guild".to_string()),
             GuildData {
                 spec: NFT_METADATA_SPEC.to_string(),
                 tag: "Arc-Core".to_string(),
@@ -146,6 +157,11 @@ impl Contract {
                 media_hash: None,
                 reference: None,
                 reference_hash: None,
+            },
+            GuildBoard {
+                size: 1,
+                share: 5000,
+                members,
             },
         )
     }

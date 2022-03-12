@@ -174,10 +174,11 @@ impl Contract {
 
         //create the token and store it
         let new_token = Token {
+            type_id: token.type_id,
             owner_id: receiver_id.clone(),
-            approved_accounts: Default::default(),
-            approval_index: token.approval_index,
             royalty: token.royalty.clone(),
+            approval_index: token.approval_index,
+            approved_accounts: Default::default(),
         };
         self.tokens.info_by_id.insert(token_id, &new_token);
 

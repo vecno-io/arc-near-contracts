@@ -2,20 +2,35 @@ use crate::*;
 
 use std::collections::HashMap;
 
-pub type TokenKey = String;
-
-#[derive(BorshDeserialize, BorshSerialize)]
-enum TokenType {
+#[derive(Copy, Clone, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
+#[serde(crate = "near_sdk::serde")]
+pub enum TokenType {
     None,
     Actor,
     Member,
 }
 
-#[derive(BorshDeserialize, BorshSerialize)]
+#[derive(Clone, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct TokenKey(String);
+
+impl ToString for TokenKey {
+    fn to_string(&self) -> String {
+        self.0.to_string()
+    }
+}
+
+impl From<String> for TokenKey {
+    fn from(item: String) -> Self {
+        TokenKey { 0: item }
+    }
+}
+
+#[derive(Clone, BorshDeserialize, BorshSerialize)]
 pub struct Token {
-    // //type id of the token
-    // pub type_id: TokenType,
-    //owner id of the token
+    //type id for the token
+    pub type_id: TokenType,
+    //owner id for the token
     pub owner_id: AccountId,
     //royalties for this token
     pub royalty: HashMap<AccountId, u32>,
@@ -28,11 +43,11 @@ pub struct Token {
 #[derive(Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct JsonToken {
-    //token ID
+    //token id
     pub token_id: TokenKey,
     //owner of the token
     pub owner_id: AccountId,
-    //token metadata
+    //metadata for the token
     pub metadata: TokenData,
 }
 

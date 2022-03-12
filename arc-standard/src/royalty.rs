@@ -30,7 +30,7 @@ impl NftRoyalties for Contract {
         let token = self
             .tokens
             .info_by_id
-            .get(&token_id)
+            .get(&token_id.into())
             .expect("Token not found");
         self.payouts(&token, u128::from(balance), max_len_payout)
     }
