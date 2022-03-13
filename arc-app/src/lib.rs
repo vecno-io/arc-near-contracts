@@ -4,12 +4,12 @@ use arc_standard::{Actors, Admin, ContractData, Guilds, Tokens};
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
-pub struct Contract {
+pub struct App {
     admin: Admin,
 
-    actors: Actors,
-    guilds: Guilds,
-    tokens: Tokens,
+    actor: Actors,
+    guild: Guilds,
+    token: Tokens,
 
     metadata: LazyOption<ContractData>,
 }
@@ -25,11 +25,8 @@ pub struct Contract {
 //     }
 // }
 
-arc_standard::impl_nft_core!(Contract, tokens);
-// arc_standard::impl_nft_core!(Contract, tokens);
-// arc_standard::impl_nft_approve!(Contract, tokens);
-// arc_standard::impl_nft_royalties!(Contract, tokens);
+arc_standard::impl_arc_tokens!(App, token);
+arc_standard::impl_arc_guilds!(App, token, guild);
+arc_standard::impl_arc_actors!(App, token, actor);
 
-arc_standard::impl_nft_contract_data!(Contract, metadata);
-
-arc_standard::impl_arc_guilds!(Contract, guilds);
+arc_standard::impl_nft_contract_data!(App, metadata);

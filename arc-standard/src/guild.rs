@@ -139,8 +139,7 @@ impl GuildBoard {
 
 #[macro_export]
 macro_rules! impl_arc_guilds {
-    //where $data is LazyOption<ContractData>
-    ($contract: ident, $guilds: ident) => {
+    ($contract: ident, $tokens: ident, $guilds: ident) => {
         use $crate::*;
 
         #[near_bindgen]

@@ -74,7 +74,7 @@ macro_rules! impl_nft_contract_data {
     ($contract: ident, $data: ident) => {
         use $crate::*;
 
-        impl NftMetadata for Contract {
+        impl NftMetadata for $contract {
             fn nft_metadata(&self) -> ContractData {
                 self.$data.get().unwrap()
             }

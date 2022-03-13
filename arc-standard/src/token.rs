@@ -147,7 +147,7 @@ pub trait NftRoyaltiesIntern {
 }
 
 #[macro_export]
-macro_rules! impl_nft_core {
+macro_rules! impl_arc_tokens {
     //where $data is LazyOption<ContractData>
     ($contract: ident, $tokens: ident) => {
         use $crate::*;
