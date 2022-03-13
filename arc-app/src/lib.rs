@@ -1,6 +1,4 @@
-use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::collections::LazyOption;
-use near_sdk::{near_bindgen, PanicOnDefault};
+arc_standard::use_imports!();
 
 use arc_standard::{Actors, Admin, ContractData, Guilds, Tokens};
 
@@ -27,6 +25,11 @@ pub struct Contract {
 //     }
 // }
 
-arc_standard::impl_arc_guilds!(Contract, guilds);
+arc_standard::impl_nft_core!(Contract, tokens);
+// arc_standard::impl_nft_core!(Contract, tokens);
+// arc_standard::impl_nft_approve!(Contract, tokens);
+// arc_standard::impl_nft_royalties!(Contract, tokens);
 
 arc_standard::impl_nft_contract_data!(Contract, metadata);
+
+arc_standard::impl_arc_guilds!(Contract, guilds);

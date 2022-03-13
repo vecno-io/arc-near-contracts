@@ -4,29 +4,22 @@ use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LazyOption, LookupMap, UnorderedMap, UnorderedSet};
 use near_sdk::json_types::{Base64VecU8, U128};
 use near_sdk::serde::{Deserialize, Serialize};
-use near_sdk::{
-    env, ext_contract, near_bindgen, require, AccountId, Balance, CryptoHash, Gas, PanicOnDefault,
-    Promise, PromiseOrValue, PromiseResult,
-};
+use near_sdk::{env, require, AccountId, Balance, CryptoHash, Gas, Promise, PromiseOrValue};
 
 pub mod intern;
 
 pub mod actor;
-pub mod approval;
 pub mod events;
 pub mod guild;
 pub mod meta;
-pub mod royalty;
 pub mod token;
 
 pub use crate::intern::*;
 
 pub use crate::actor::*;
-pub use crate::approval::*;
 pub use crate::events::*;
 pub use crate::guild::*;
 pub use crate::meta::*;
-pub use crate::royalty::*;
 pub use crate::token::*;
 
 #[derive(BorshSerialize)]
@@ -105,14 +98,14 @@ impl Tokens {
     }
 }
 
-#[near_bindgen]
-#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
-pub struct Contract {
-    admin: Admin,
-    actors: Actors,
-    guilds: Guilds,
-    tokens: Tokens,
-}
+// #[near_bindgen]
+// #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
+// pub struct Contract {
+//     admin: Admin,
+//     actors: Actors,
+//     guilds: Guilds,
+//     tokens: Tokens,
+// }
 
 // #[near_bindgen]
 // impl Contract {
@@ -166,3 +159,17 @@ pub struct Contract {
 //         )
 //     }
 // }
+
+#[macro_export]
+macro_rules! use_imports {
+    //where $data is LazyOption<ContractData>
+    () => {
+        use std::collections::HashMap;
+
+        use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
+        use near_sdk::collections::{LazyOption, LookupMap, UnorderedMap, UnorderedSet};
+        use near_sdk::json_types::U128;
+        use near_sdk::{env, ext_contract, near_bindgen, require};
+        use near_sdk::{AccountId, PanicOnDefault, PromiseOrValue, PromiseResult};
+    };
+}

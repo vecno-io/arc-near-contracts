@@ -143,9 +143,6 @@ macro_rules! impl_arc_guilds {
     ($contract: ident, $guilds: ident) => {
         use $crate::*;
 
-        use near_sdk::json_types::U128;
-        use near_sdk::{env, require, AccountId};
-
         #[near_bindgen]
         impl ArcGuild for $contract {
             fn arc_guild(&self, guild_key: GuildKey) -> Option<JsonGuild> {
