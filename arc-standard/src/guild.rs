@@ -1,7 +1,5 @@
 use crate::*;
 
-use std::collections::HashMap;
-
 const MAX_BASE_POINTS_TOTAL: u16 = 10000;
 
 #[derive(Copy, Clone, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
@@ -139,78 +137,96 @@ impl GuildBoard {
     }
 }
 
-impl ArcGuild for Contract {
-    fn arc_guild(&self, guild_key: GuildKey) -> Option<JsonGuild> {
-        if let Some(guild) = self.guilds.info_by_id.get(&guild_key) {
-            let data = self.guilds.data_for_id.get(&guild_key).unwrap();
-            let board = self.guilds.board_for_id.get(&guild_key).unwrap();
-            Some(JsonGuild {
-                id: guild_key,
-                ceo: guild.ceo_id,
-                data: data,
-                board: board,
-            })
-        } else {
-            None
+#[macro_export]
+macro_rules! impl_arc_guilds {
+    //where $data is LazyOption<ContractData>
+    ($contract: ident, $guilds: ident) => {
+        use $crate::*;
+
+        use near_sdk::json_types::U128;
+        use near_sdk::{env, require, AccountId};
+
+        #[near_bindgen]
+        impl ArcGuild for $contract {
+            fn arc_guild(&self, guild_key: GuildKey) -> Option<JsonGuild> {
+                if let Some(guild) = self.$guilds.info_by_id.get(&guild_key) {
+                    let data = self.$guilds.data_for_id.get(&guild_key).unwrap();
+                    let board = self.$guilds.board_for_id.get(&guild_key).unwrap();
+                    Some(JsonGuild {
+                        id: guild_key,
+                        ceo: guild.ceo_id,
+                        data: data,
+                        board: board,
+                    })
+                } else {
+                    None
+                }
+            }
+
+            // TODO FixMe: This methode is not a contract call
+            // It is internal to the contract so !#[near_bindgen]
+            fn arc_register_guild(
+                &mut self,
+                ceo_id: AccountId,
+                guild_key: GuildKey,
+                guild_data: GuildData,
+                guild_board: GuildBoard,
+                memo: Option<String>,
+            ) {
+                assert_min_one_yocto();
+                guild_data.assert_valid();
+                guild_board.assert_valid();
+
+                let storage_usage = env::storage_usage();
+
+                // TODO: move to contract implementaion
+                //create the guild and store it
+                // let guild_id = format!(
+                //     "{}:Guild:{:06}",
+                //     asset_data.symbol,
+                //     self.guilddata_by_id.len()
+                // );
+
+                let guild = Guild {
+                    ceo_id: ceo_id,
+                    type_id: GuildType::Base,
+                };
+                require!(
+                    self.$guilds.info_by_id.insert(&guild_key, &guild).is_none(),
+                    "A guild with the provided id already exits"
+                );
+                self.$guilds.data_for_id.insert(&guild_key, &guild_data);
+                self.$guilds.board_for_id.insert(&guild_key, &guild_board);
+
+                // TODO: Implement events for guild registration
+                if let Some(message) = memo {
+                    env::log_str(&message);
+                }
+
+                // // TEMP TEST Methode
+                // // TODO Implement API Hooks
+                // self.$guilds.create_vote();
+
+                //refund unused storage fees and return the id to the caller,
+                refund_storage_deposit(env::storage_usage() - storage_usage);
+            }
         }
-    }
 
-    fn arc_register_guild(
-        &mut self,
-        ceo_id: AccountId,
-        guild_key: GuildKey,
-        guild_data: GuildData,
-        guild_board: GuildBoard,
-        memo: Option<String>,
-    ) {
-        assert_min_one_yocto();
-        guild_data.assert_valid();
-        guild_board.assert_valid();
+        impl ArcGuildEnumerator for $contract {
+            fn arc_guild_count(&self) -> U128 {
+                U128(self.$guilds.data_for_id.len() as u128)
+            }
 
-        let storage_usage = env::storage_usage();
-
-        // TODO: move to contract implementaion
-        //create the guild and store it
-        // let guild_id = format!(
-        //     "{}:Guild:{:06}",
-        //     asset_data.symbol,
-        //     self.guilddata_by_id.len()
-        // );
-
-        let guild = Guild {
-            ceo_id: ceo_id,
-            type_id: GuildType::Base,
-        };
-        require!(
-            self.guilds.info_by_id.insert(&guild_key, &guild).is_none(),
-            "A guild with the provided id already exits"
-        );
-        self.guilds.data_for_id.insert(&guild_key, &guild_data);
-        self.guilds.board_for_id.insert(&guild_key, &guild_board);
-
-        // TODO: Implement events for guild registration
-        if let Some(message) = memo {
-            env::log_str(&message);
+            fn arc_guilds(&self, from_index: Option<U128>, limit: Option<u64>) -> Vec<JsonGuild> {
+                let start = u128::from(from_index.unwrap_or(U128(0)));
+                self.$guilds
+                    .data_for_id
+                    .keys()
+                    .skip(start as usize)
+                    .take(limit.unwrap_or(50) as usize)
+                    .map(|guild_key| self.arc_guild(guild_key.clone()).unwrap())
+                    .collect()
+            }
         }
-
-        //refund unused storage fees and return the id to the caller,
-        refund_storage_deposit(env::storage_usage() - storage_usage);
-    }
-}
-
-impl ArcGuildEnumerator for Contract {
-    fn arc_guild_count(&self) -> U128 {
-        U128(self.guilds.data_for_id.len() as u128)
-    }
-
-    fn arc_guilds(&self, from_index: Option<U128>, limit: Option<u64>) -> Vec<JsonGuild> {
-        let start = u128::from(from_index.unwrap_or(U128(0)));
-        self.guilds
-            .data_for_id
-            .keys()
-            .skip(start as usize)
-            .take(limit.unwrap_or(50) as usize)
-            .map(|guild_key| self.arc_guild(guild_key.clone()).unwrap())
-            .collect()
-    }
+    };
 }

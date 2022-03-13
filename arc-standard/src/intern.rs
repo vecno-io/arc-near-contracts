@@ -11,7 +11,7 @@ pub(crate) const GAS_FOR_NFT_TRANSFER_CALL: Gas = Gas(35_000_000_000_000);
 pub(crate) const MIN_GAS_FOR_NFT_TRANSFER_CALL: Gas = Gas(100_000_000_000_000);
 
 //used to make sure the user attached exactly 1 yoctoNEAR
-pub(crate) fn assert_one_yocto() {
+pub fn assert_one_yocto() {
     assert_eq!(
         env::attached_deposit(),
         1,
@@ -20,7 +20,7 @@ pub(crate) fn assert_one_yocto() {
 }
 
 //used to make sure the user attached exactly 1 yoctoNEAR
-pub(crate) fn assert_min_one_yocto() {
+pub fn assert_min_one_yocto() {
     assert!(
         env::attached_deposit() >= 1,
         "Requires attached deposit of at least 1 yocto",
@@ -28,14 +28,14 @@ pub(crate) fn assert_min_one_yocto() {
 }
 
 //used to generate a unique fixed size prefix for storage
-pub(crate) fn hash_storage_key(bytes: &[u8]) -> CryptoHash {
+pub fn hash_storage_key(bytes: &[u8]) -> CryptoHash {
     let mut hash = CryptoHash::default();
     hash.copy_from_slice(&env::sha256(bytes));
     hash
 }
 
 //refund the initial deposit based on the amount of storage that was used up
-pub(crate) fn refund_storage_deposit(storage_used: u64) {
+pub fn refund_storage_deposit(storage_used: u64) {
     let required_cost = env::storage_byte_cost() * Balance::from(storage_used);
     let attached_deposit = env::attached_deposit();
     let finalized_refund = attached_deposit - required_cost;
