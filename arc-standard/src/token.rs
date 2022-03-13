@@ -2,6 +2,8 @@ use crate::*;
 
 use std::collections::HashMap;
 
+const MAX_BASE_POINTS_TOTAL: u16 = 10000;
+
 #[derive(Copy, Clone, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
 #[serde(crate = "near_sdk::serde")]
 pub enum TokenType {
@@ -33,7 +35,7 @@ pub struct Token {
     //owner id for the token
     pub owner_id: AccountId,
     //royalties for this token
-    pub royalty: HashMap<AccountId, u32>,
+    pub payout: TokenPayout,
     //approval index tracker
     pub approval_index: u64,
     //approved account mapped to an index
@@ -57,11 +59,32 @@ pub struct JsonPayout {
     pub payout: HashMap<AccountId, U128>,
 }
 
+#[derive(Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct TokenData {
+    pub copies: Option<u64>,
+    pub issued_at: Option<u64>,
+    pub expires_at: Option<u64>,
+    pub starts_at: Option<u64>,
+    pub updated_at: Option<u64>,
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub extra: Option<String>,
+    pub media: Option<String>,
+    pub media_hash: Option<Base64VecU8>,
+    pub reference: Option<String>,
+    pub reference_hash: Option<Base64VecU8>,
+}
+
+#[derive(Clone, Default, Serialize, Deserialize, BorshSerialize, BorshDeserialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct TokenPayout(HashMap<AccountId, u16>);
+//     pub map: HashMap<AccountId, u16>,
+// }
+
 pub trait NftCore {
-    //view call for returning the token data for the provided id
     fn nft_token(&self, token_id: TokenKey) -> Option<JsonToken>;
 
-    //transfers a token to a receiver ID
     fn nft_transfer(
         &mut self,
         receiver_id: AccountId,
@@ -70,8 +93,6 @@ pub trait NftCore {
         memo: Option<String>,
     );
 
-    //transfers a token to a receiver and calls the receivers contract
-    /// Returns `true` if the token was transferred from the sender's account
     fn nft_transfer_call(
         &mut self,
         receiver_id: AccountId,
@@ -126,29 +147,78 @@ pub trait NftEnumeration {
     ) -> Vec<JsonToken>;
 }
 
-pub trait NftCoreIntern {
-    fn transfer(
-        &mut self,
-        sender_id: &AccountId,
-        receiver_id: &AccountId,
-        token_id: &TokenKey,
-        approval_id: Option<u64>,
-        memo: Option<String>,
-    ) -> Token;
+impl TokenData {
+    pub fn assert_valid(&self) {
+        require!(self.media.is_some() == self.media_hash.is_some());
+        if let Some(media_hash) = &self.media_hash {
+            require!(media_hash.0.len() == 32, "Media hash has to be 32 bytes");
+        }
 
-    //returns true when a new storage map was created for the token owner
-    fn add_token_to_owner(&mut self, token_id: &TokenKey, owner_id: &AccountId) -> bool;
-
-    fn remove_token_from_owner(&mut self, token_id: &TokenKey, account_id: &AccountId);
+        require!(self.reference.is_some() == self.reference_hash.is_some());
+        if let Some(reference_hash) = &self.reference_hash {
+            require!(
+                reference_hash.0.len() == 32,
+                "Reference hash has to be 32 bytes"
+            );
+        }
+    }
 }
 
-pub trait NftRoyaltiesIntern {
-    fn payouts(&self, token: &Token, amount: u128, max_payouts: u32) -> JsonPayout;
+impl TokenPayout {
+    // TODO Max Configuration Options
+    // pub fn set_valid_cfg(cfg: TokenPayoutCfg)
+    // pub fn load_valid_cfg() -> TokenPayoutCfg
+    pub fn assert_valid(&self) {
+        let mut total = 0;
+        require!(
+            self.0.len() < 5,
+            format!(
+                "Cannot add more than {} payouts per token, got {}",
+                4,
+                self.0.len()
+            )
+        );
+        for (_account, amount) in &self.0 {
+            total += amount;
+        }
+        require!(
+            total <= MAX_BASE_POINTS_TOTAL,
+            format!(
+                "The total for payouts can not be larger than {}, got {}",
+                total, MAX_BASE_POINTS_TOTAL
+            )
+        );
+    }
+
+    pub fn compute(&self, owner_id: AccountId, amount: u128, max_payouts: u32) -> JsonPayout {
+        assert!(
+            self.0.len() as u32 <= max_payouts,
+            "The request cannot payout all royalties"
+        );
+        let mut total_payout = 0;
+        let mut payout_object = JsonPayout {
+            payout: HashMap::new(),
+        };
+        for (k, v) in self.0.iter() {
+            let key = k.clone();
+            if key != owner_id {
+                payout_object
+                    .payout
+                    .insert(key, royalty_to_payout(*v, amount));
+                total_payout += *v;
+            }
+        }
+        //payout the remaining amount to the owner
+        payout_object.payout.insert(
+            owner_id.clone(),
+            royalty_to_payout(MAX_BASE_POINTS_TOTAL - total_payout, amount),
+        );
+        payout_object
+    }
 }
 
 #[macro_export]
-macro_rules! impl_arc_tokens {
-    //where $data is LazyOption<ContractData>
+macro_rules! impl_nft_tokens {
     ($contract: ident, $tokens: ident) => {
         use $crate::*;
 
@@ -224,8 +294,13 @@ macro_rules! impl_arc_tokens {
             ) {
                 assert_one_yocto();
                 let sender_id = env::predecessor_account_id();
-                let token =
-                    self.transfer(&sender_id, &receiver_id, &token_id, Some(approval_id), memo);
+                let token = self.$tokens.transfer(
+                    &sender_id,
+                    &receiver_id,
+                    &token_id,
+                    Some(approval_id),
+                    memo,
+                );
                 refund_approved_accounts(token.owner_id.clone(), &token.approved_accounts);
             }
 
@@ -249,7 +324,7 @@ macro_rules! impl_arc_tokens {
                 );
 
                 let sender_id = env::predecessor_account_id();
-                let token = self.transfer(
+                let token = self.$tokens.transfer(
                     &sender_id,
                     &receiver_id,
                     &token_id,
@@ -429,7 +504,9 @@ macro_rules! impl_arc_tokens {
                     .info_by_id
                     .get(&token_id.into())
                     .expect("Token not found");
-                self.payouts(&token, u128::from(balance), max_len_payout)
+                token
+                    .payout
+                    .compute(token.owner_id, balance.into(), max_len_payout)
             }
 
             fn nft_transfer_payout(
@@ -442,7 +519,7 @@ macro_rules! impl_arc_tokens {
                 max_len_payout: u32,
             ) -> JsonPayout {
                 assert_one_yocto();
-                let token = self.transfer(
+                let token = self.$tokens.transfer(
                     &env::predecessor_account_id(),
                     &receiver_id,
                     &token_id,
@@ -450,7 +527,9 @@ macro_rules! impl_arc_tokens {
                     Some(memo),
                 );
                 refund_approved_accounts(token.owner_id.clone(), &token.approved_accounts);
-                self.payouts(&token, u128::from(balance), max_len_payout)
+                token
+                    .payout
+                    .compute(token.owner_id, balance.into(), max_len_payout)
             }
         }
 
@@ -543,8 +622,8 @@ macro_rules! impl_arc_tokens {
                 };
 
                 //return the token to the original owner and remove it from the new owner
-                self.remove_token_from_owner(&token_id, &receiver_id.clone());
-                self.add_token_to_owner(&token_id, &owner_id);
+                self.$tokens.remove_from_owner(&token_id, &receiver_id);
+                self.$tokens.add_to_owner(&token_id, &owner_id);
 
                 token.owner_id = owner_id.clone();
 
@@ -570,162 +649,6 @@ macro_rules! impl_arc_tokens {
                 env::log_str(&nft_transfer_log.to_string());
 
                 false
-            }
-        }
-
-        impl NftCoreIntern for $contract {
-            fn transfer(
-                &mut self,
-                sender_id: &AccountId,
-                receiver_id: &AccountId,
-                token_id: &TokenKey,
-                approval_id: Option<u64>,
-                memo: Option<String>,
-            ) -> Token {
-                let token = self
-                    .$tokens
-                    .info_by_id
-                    .get(token_id)
-                    .expect("Token info not found");
-
-                //no sending it to themselves
-                assert_ne!(
-                    &token.owner_id, receiver_id,
-                    "The token owner and the receiver should be different"
-                );
-
-                //check the approval list when not owner
-                if sender_id != &token.owner_id {
-                    if !token.approved_accounts.contains_key(sender_id) {
-                        env::panic_str("Unauthorized transfer");
-                    }
-
-                    if let Some(enforced_approval_id) = approval_id {
-                        let actual_approval_id = token
-                            .approved_accounts
-                            .get(sender_id)
-                            .expect("Sender is not authorized to transfer");
-
-                        assert_eq!(
-                            actual_approval_id, &enforced_approval_id,
-                            "Sender provided an invalid approval id",
-                        );
-                    }
-                }
-
-                //remove the token fro mthe old owner and add it to the new owner
-                self.remove_token_from_owner(token_id, &token.owner_id);
-                self.add_token_to_owner(token_id, receiver_id);
-
-                //create the token and store it
-                let new_token = Token {
-                    type_id: token.type_id,
-                    owner_id: receiver_id.clone(),
-                    royalty: token.royalty.clone(),
-                    approval_index: token.approval_index,
-                    approved_accounts: Default::default(),
-                };
-                self.$tokens.info_by_id.insert(token_id, &new_token);
-
-                //log the memo message if one is provided
-                if let Some(memo) = memo.as_ref() {
-                    env::log_str(&format!("Memo: {}", memo).to_string());
-                }
-
-                //log an event message for the transfer
-                let mut authorized_id = None;
-                if approval_id.is_some() {
-                    authorized_id = Some(sender_id.to_string());
-                }
-                let nft_transfer_log: EventLog = EventLog {
-                    standard: EVENT_NFT_STANDARD_NAME.to_string(),
-                    version: EVENT_NFT_METADATA_SPEC.to_string(),
-                    event: EventLogVariant::NftTransfer(vec![NftTransferLog {
-                        authorized_id,
-                        old_owner_id: token.owner_id.to_string(),
-                        new_owner_id: receiver_id.to_string(),
-                        token_ids: vec![token_id.to_string()],
-                        memo,
-                    }]),
-                };
-                env::log_str(&nft_transfer_log.to_string());
-
-                token
-            }
-
-            // TODO Rename token for to actor for
-            // TODO Implement actors/guilds per owner update
-            fn add_token_to_owner(&mut self, token_id: &TokenKey, owner_id: &AccountId) -> bool {
-                let mut created = false;
-                let owner_key = hash_storage_key(owner_id.as_bytes());
-                let mut tokens_set =
-                    self.$tokens
-                        .list_per_owner
-                        .get(&owner_key)
-                        .unwrap_or_else(|| {
-                            created = true;
-                            UnorderedSet::new(
-                                StorageKey::TokensPerOwnerSet { owner_key }
-                                    .try_to_vec()
-                                    .unwrap(),
-                            )
-                        });
-
-                tokens_set.insert(token_id);
-                self.$tokens.list_per_owner.insert(&owner_key, &tokens_set);
-
-                created
-            }
-
-            // TODO Rename token for to actor for
-            // TODO Implement actors/guilds per owner update
-            fn remove_token_from_owner(&mut self, token_id: &TokenKey, account_id: &AccountId) {
-                let owner_key = hash_storage_key(account_id.as_bytes());
-
-                let mut tokens_set = self
-                    .$tokens
-                    .list_per_owner
-                    .get(&owner_key)
-                    .expect("Sender must own the token");
-
-                tokens_set.remove(token_id);
-
-                if tokens_set.is_empty() {
-                    self.$tokens.list_per_owner.remove(&owner_key);
-                } else {
-                    self.$tokens.list_per_owner.insert(&owner_key, &tokens_set);
-                }
-            }
-        }
-
-        impl NftRoyaltiesIntern for $contract {
-            fn payouts(&self, token: &Token, amount: u128, max_payouts: u32) -> JsonPayout {
-                //gas might be a limiting factor, panic if needed
-                assert!(
-                    token.royalty.len() as u32 <= max_payouts,
-                    "The request cannot payout all royalties"
-                );
-                //track the total perpetual royalties
-                let mut total_perpetual = 0;
-                let mut payout_object = JsonPayout {
-                    payout: HashMap::new(),
-                };
-                //add all royalties to the payout list
-                for (k, v) in token.royalty.iter() {
-                    let key = k.clone();
-                    if key != token.owner_id {
-                        payout_object
-                            .payout
-                            .insert(key, royalty_to_payout(*v, amount));
-                        total_perpetual += *v;
-                    }
-                }
-                //payout the remaining amount to the owner
-                payout_object.payout.insert(
-                    token.owner_id.clone(),
-                    royalty_to_payout(MAX_TOTAL_ROYALTIES - total_perpetual, amount),
-                );
-                payout_object
             }
         }
     };

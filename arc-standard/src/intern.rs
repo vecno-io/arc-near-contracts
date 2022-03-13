@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::mem::size_of;
 
 pub const NO_DEPOSIT: Balance = 0;
-pub const MAX_TOTAL_ROYALTIES: u32 = 10000;
+pub const MAX_BASE_POINTS_TOTAL: u16 = 10000;
 
 pub const GAS_FOR_NFT_APPROVE: Gas = Gas(10_000_000_000_000);
 pub const GAS_FOR_RESOLVE_TRANSFER: Gas = Gas(10_000_000_000_000);
@@ -81,6 +81,6 @@ pub fn refund_approved_accounts(
 }
 
 //convert the royalty percentage and amount to pay into a payout (U128)
-pub fn royalty_to_payout(royalty_percentage: u32, amount_to_pay: Balance) -> U128 {
-    U128(royalty_percentage as u128 * amount_to_pay / MAX_TOTAL_ROYALTIES as u128)
+pub fn royalty_to_payout(royalty_percentage: u16, amount_to_pay: Balance) -> U128 {
+    U128(royalty_percentage as u128 * amount_to_pay / MAX_BASE_POINTS_TOTAL as u128)
 }

@@ -1,6 +1,6 @@
 arc_standard::use_imports!();
 
-use arc_standard::{Actors, Admin, ContractData, Guilds, Tokens};
+use arc_standard::{Actors, Admin, Guilds, Metadata, Tokens};
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
@@ -11,7 +11,7 @@ pub struct App {
     guild: Guilds,
     token: Tokens,
 
-    metadata: LazyOption<ContractData>,
+    metadata: LazyOption<Metadata>,
 }
 
 // // TODO Implement API Hooks
@@ -25,8 +25,24 @@ pub struct App {
 //     }
 // }
 
-arc_standard::impl_arc_tokens!(App, token);
+arc_standard::impl_meta!(App, metadata);
+
+arc_standard::impl_nft_tokens!(App, token);
 arc_standard::impl_arc_guilds!(App, token, guild);
 arc_standard::impl_arc_actors!(App, token, actor);
 
-arc_standard::impl_nft_contract_data!(App, metadata);
+// TODO: move to contract implementaion
+//create the actor and store it
+// let actor_id = format!(
+//     "{}:Actor:{:06}",
+//     asset_data.symbol,
+//     self.actors.data_for_id.len()
+// );
+
+// TODO: move to contract implementaion
+//create the guild and store it
+// let guild_id = format!(
+//     "{}:Guild:{:06}",
+//     asset_data.symbol,
+//     self.guilddata_by_id.len()
+// );

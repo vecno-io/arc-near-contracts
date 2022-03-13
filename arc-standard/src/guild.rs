@@ -70,21 +70,21 @@ pub struct GuildBoard {
 pub trait ArcGuild {
     fn arc_guild(&self, guild_id: GuildKey) -> Option<JsonGuild>;
 
-    fn arc_register_guild(
-        &mut self,
-        ceo_id: AccountId,
-        guild_key: GuildKey,
-        guild_data: GuildData,
-        guild_board: GuildBoard,
-        memo: Option<String>,
-    );
-}
-
-pub trait ArcGuildEnumerator {
     fn arc_guild_count(&self) -> U128;
 
     fn arc_guilds(&self, from_index: Option<U128>, limit: Option<u64>) -> Vec<JsonGuild>;
 }
+
+// pub trait ArcGuildIntern {
+//     fn intern_register_guild(
+//         &mut self,
+//         ceo_id: AccountId,
+//         guild_key: GuildKey,
+//         guild_data: GuildData,
+//         guild_board: GuildBoard,
+//         memo: Option<String>,
+//     );
+// }
 
 impl GuildData {
     pub fn assert_valid(&self) {
@@ -159,56 +159,6 @@ macro_rules! impl_arc_guilds {
                 }
             }
 
-            // TODO FixMe: This methode is not a contract call
-            // It is internal to the contract so !#[near_bindgen]
-            fn arc_register_guild(
-                &mut self,
-                ceo_id: AccountId,
-                guild_key: GuildKey,
-                guild_data: GuildData,
-                guild_board: GuildBoard,
-                memo: Option<String>,
-            ) {
-                assert_min_one_yocto();
-                guild_data.assert_valid();
-                guild_board.assert_valid();
-
-                let storage_usage = env::storage_usage();
-
-                // TODO: move to contract implementaion
-                //create the guild and store it
-                // let guild_id = format!(
-                //     "{}:Guild:{:06}",
-                //     asset_data.symbol,
-                //     self.guilddata_by_id.len()
-                // );
-
-                let guild = Guild {
-                    ceo_id: ceo_id,
-                    type_id: GuildType::Base,
-                };
-                require!(
-                    self.$guilds.info_by_id.insert(&guild_key, &guild).is_none(),
-                    "A guild with the provided id already exits"
-                );
-                self.$guilds.data_for_id.insert(&guild_key, &guild_data);
-                self.$guilds.board_for_id.insert(&guild_key, &guild_board);
-
-                // TODO: Implement events for guild registration
-                if let Some(message) = memo {
-                    env::log_str(&message);
-                }
-
-                // // TEMP TEST Methode
-                // // TODO Implement API Hooks
-                // self.$guilds.create_vote();
-
-                //refund unused storage fees and return the id to the caller,
-                refund_storage_deposit(env::storage_usage() - storage_usage);
-            }
-        }
-
-        impl ArcGuildEnumerator for $contract {
             fn arc_guild_count(&self) -> U128 {
                 U128(self.$guilds.data_for_id.len() as u128)
             }
