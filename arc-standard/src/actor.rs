@@ -97,18 +97,6 @@ pub trait ArcActor {
     ) -> Vec<JsonActor>;
 }
 
-pub trait ArcActorIntern {
-    fn intern_register_actor(
-        &mut self,
-        receiver_id: AccountId,
-        token_id: TokenKey,
-        token_data: TokenData,
-        actor_data: ActorData,
-        royalties: Option<HashMap<AccountId, u32>>,
-        memo: Option<String>,
-    );
-}
-
 impl ActorData {
     pub fn assert_valid(&self) {
         self.name.assert_valid();
