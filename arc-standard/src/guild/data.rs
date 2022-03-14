@@ -67,25 +67,6 @@ pub struct GuildBoard {
     pub members: HashMap<AccountId, u16>,
 }
 
-pub trait ArcGuild {
-    fn arc_guild(&self, guild_id: GuildKey) -> Option<JsonGuild>;
-
-    fn arc_guild_count(&self) -> U128;
-
-    fn arc_guilds(&self, from_index: Option<U128>, limit: Option<u64>) -> Vec<JsonGuild>;
-}
-
-// pub trait ArcGuildIntern {
-//     fn intern_register_guild(
-//         &mut self,
-//         ceo_id: AccountId,
-//         guild_key: GuildKey,
-//         guild_data: GuildData,
-//         guild_board: GuildBoard,
-//         memo: Option<String>,
-//     );
-// }
-
 impl GuildData {
     pub fn assert_valid(&self) {
         require!(self.icon.is_some() == self.icon_hash.is_some());
@@ -135,44 +116,4 @@ impl GuildBoard {
             )
         );
     }
-}
-
-#[macro_export]
-macro_rules! impl_arc_guilds {
-    ($contract: ident, $tokens: ident, $guilds: ident) => {
-        use $crate::*;
-
-        #[near_bindgen]
-        impl ArcGuild for $contract {
-            fn arc_guild(&self, guild_key: GuildKey) -> Option<JsonGuild> {
-                if let Some(guild) = self.$guilds.info_by_id.get(&guild_key) {
-                    let data = self.$guilds.data_for_id.get(&guild_key).unwrap();
-                    let board = self.$guilds.board_for_id.get(&guild_key).unwrap();
-                    Some(JsonGuild {
-                        id: guild_key,
-                        ceo: guild.ceo_id,
-                        data: data,
-                        board: board,
-                    })
-                } else {
-                    None
-                }
-            }
-
-            fn arc_guild_count(&self) -> U128 {
-                U128(self.$guilds.data_for_id.len() as u128)
-            }
-
-            fn arc_guilds(&self, from_index: Option<U128>, limit: Option<u64>) -> Vec<JsonGuild> {
-                let start = u128::from(from_index.unwrap_or(U128(0)));
-                self.$guilds
-                    .data_for_id
-                    .keys()
-                    .skip(start as usize)
-                    .take(limit.unwrap_or(50) as usize)
-                    .map(|guild_key| self.arc_guild(guild_key.clone()).unwrap())
-                    .collect()
-            }
-        }
-    };
 }

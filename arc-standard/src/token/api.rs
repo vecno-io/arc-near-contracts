@@ -1,87 +1,5 @@
 use crate::*;
 
-use std::collections::HashMap;
-
-const MAX_BASE_POINTS_TOTAL: u16 = 10000;
-
-#[derive(Copy, Clone, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
-#[serde(crate = "near_sdk::serde")]
-pub enum TokenType {
-    None,
-    Actor,
-    Member,
-}
-
-#[derive(Clone, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
-#[serde(crate = "near_sdk::serde")]
-pub struct TokenKey(String);
-
-impl ToString for TokenKey {
-    fn to_string(&self) -> String {
-        self.0.to_string()
-    }
-}
-
-impl From<String> for TokenKey {
-    fn from(item: String) -> Self {
-        TokenKey { 0: item }
-    }
-}
-
-#[derive(Clone, BorshDeserialize, BorshSerialize)]
-pub struct Token {
-    //type id for the token
-    pub type_id: TokenType,
-    //owner id for the token
-    pub owner_id: AccountId,
-    //royalties for this token
-    pub payout: TokenPayout,
-    //approval index tracker
-    pub approval_index: u64,
-    //approved account mapped to an index
-    pub approved_accounts: HashMap<AccountId, u64>,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(crate = "near_sdk::serde")]
-pub struct JsonToken {
-    //token id
-    pub token_id: TokenKey,
-    //owner of the token
-    pub owner_id: AccountId,
-    //metadata for the token
-    pub metadata: TokenData,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(crate = "near_sdk::serde")]
-pub struct JsonPayout {
-    pub payout: HashMap<AccountId, U128>,
-}
-
-#[derive(Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize)]
-#[serde(crate = "near_sdk::serde")]
-pub struct TokenData {
-    pub copies: Option<u64>,
-    pub issued_at: Option<u64>,
-    pub expires_at: Option<u64>,
-    pub starts_at: Option<u64>,
-    pub updated_at: Option<u64>,
-    pub title: Option<String>,
-    pub description: Option<String>,
-    pub extra: Option<String>,
-    pub media: Option<String>,
-    pub media_hash: Option<Base64VecU8>,
-    pub reference: Option<String>,
-    pub reference_hash: Option<Base64VecU8>,
-}
-
-#[derive(Clone, Default, Serialize, Deserialize, BorshSerialize, BorshDeserialize)]
-#[serde(crate = "near_sdk::serde")]
-pub struct TokenPayout(HashMap<AccountId, u16>);
-//     pub map: HashMap<AccountId, u16>,
-// }
-
 pub trait NftCore {
     fn nft_token(&self, token_id: TokenKey) -> Option<JsonToken>;
 
@@ -147,76 +65,6 @@ pub trait NftEnumeration {
     ) -> Vec<JsonToken>;
 }
 
-impl TokenData {
-    pub fn assert_valid(&self) {
-        require!(self.media.is_some() == self.media_hash.is_some());
-        if let Some(media_hash) = &self.media_hash {
-            require!(media_hash.0.len() == 32, "Media hash has to be 32 bytes");
-        }
-
-        require!(self.reference.is_some() == self.reference_hash.is_some());
-        if let Some(reference_hash) = &self.reference_hash {
-            require!(
-                reference_hash.0.len() == 32,
-                "Reference hash has to be 32 bytes"
-            );
-        }
-    }
-}
-
-impl TokenPayout {
-    // TODO Max Configuration Options
-    // pub fn set_valid_cfg(cfg: TokenPayoutCfg)
-    // pub fn load_valid_cfg() -> TokenPayoutCfg
-    pub fn assert_valid(&self) {
-        let mut total = 0;
-        require!(
-            self.0.len() < 5,
-            format!(
-                "Cannot add more than {} payouts per token, got {}",
-                4,
-                self.0.len()
-            )
-        );
-        for (_account, amount) in &self.0 {
-            total += amount;
-        }
-        require!(
-            total <= MAX_BASE_POINTS_TOTAL,
-            format!(
-                "The total for payouts can not be larger than {}, got {}",
-                total, MAX_BASE_POINTS_TOTAL
-            )
-        );
-    }
-
-    pub fn compute(&self, owner_id: AccountId, amount: u128, max_payouts: u32) -> JsonPayout {
-        assert!(
-            self.0.len() as u32 <= max_payouts,
-            "The request cannot payout all royalties"
-        );
-        let mut total_payout = 0;
-        let mut payout_object = JsonPayout {
-            payout: HashMap::new(),
-        };
-        for (k, v) in self.0.iter() {
-            let key = k.clone();
-            if key != owner_id {
-                payout_object
-                    .payout
-                    .insert(key, royalty_to_payout(*v, amount));
-                total_payout += *v;
-            }
-        }
-        //payout the remaining amount to the owner
-        payout_object.payout.insert(
-            owner_id.clone(),
-            royalty_to_payout(MAX_BASE_POINTS_TOTAL - total_payout, amount),
-        );
-        payout_object
-    }
-}
-
 #[macro_export]
 macro_rules! impl_nft_tokens {
     ($contract: ident, $tokens: ident) => {
@@ -269,19 +117,15 @@ macro_rules! impl_nft_tokens {
         #[near_bindgen]
         impl NftCore for $contract {
             fn nft_token(&self, token_id: TokenKey) -> Option<JsonToken> {
-                //if there is some data for the token id in the token data store:
                 if let Some(tokendata) = self.$tokens.data_for_id.get(&token_id) {
                     let token = self.$tokens.info_by_id.get(&token_id).unwrap();
-                    //then return the wrapped JsonActor
-                    Some(JsonToken {
+                    return Some(JsonToken {
                         token_id: token_id,
                         owner_id: token.owner_id,
                         metadata: tokendata,
-                    })
-                } else {
-                    //else return None
-                    None
+                    });
                 }
+                return None;
             }
 
             #[payable]
@@ -315,7 +159,6 @@ macro_rules! impl_nft_tokens {
             ) -> PromiseOrValue<bool> {
                 assert_one_yocto();
 
-                // Validate gass before calling transfers
                 let attached_gas = env::prepaid_gas();
                 assert!(
                     attached_gas >= MIN_GAS_FOR_NFT_TRANSFER_CALL,
@@ -337,8 +180,7 @@ macro_rules! impl_nft_tokens {
                     authorized_id = Some(sender_id.to_string());
                 }
 
-                // Initiating receiver's call and the callback
-                ext_nft_receiver::nft_on_transfer(
+                return ext_nft_receiver::nft_on_transfer(
                     sender_id,
                     token.owner_id.clone(),
                     token_id.clone(),
@@ -358,7 +200,7 @@ macro_rules! impl_nft_tokens {
                     NO_DEPOSIT,
                     GAS_FOR_RESOLVE_TRANSFER,
                 ))
-                .into()
+                .into();
             }
         }
 
@@ -370,24 +212,18 @@ macro_rules! impl_nft_tokens {
                 approved_account_id: AccountId,
                 approval_id: Option<u64>,
             ) -> bool {
-                //get the token info for the provided token id or panic with message
                 let token = self
                     .$tokens
                     .info_by_id
                     .get(&token_id)
                     .expect("Token not found");
-
-                //if there is an aproval id stored for the provided account id:
                 if let Some(approval) = token.approved_accounts.get(&approved_account_id) {
-                    //then return true or validate the provided id
                     if let Some(approval_id) = approval_id {
-                        approval_id == *approval
-                    } else {
-                        true
+                        return approval_id == *approval;
                     }
-                } else {
-                    false
+                    return true;
                 }
+                return false;
             }
 
             fn nft_approve(
@@ -397,32 +233,27 @@ macro_rules! impl_nft_tokens {
                 msg: Option<String>,
             ) {
                 assert_min_one_yocto();
-                //get the token info for the provided token id or panic with message
+
                 let mut token = self
                     .$tokens
                     .info_by_id
                     .get(&token_id)
                     .expect("Token not found");
-
-                //validate the caller is the owner
                 assert_eq!(
                     &env::predecessor_account_id(),
                     &token.owner_id,
                     "Signer must be the token owner."
                 );
 
-                //increment the approval id for the token
                 let approval_id: u64 = token.approval_index;
                 token.approval_index += 1;
 
-                //update the approved accounts list
                 let is_new_approval = token
                     .approved_accounts
                     .insert(account_id.clone(), approval_id)
                     .is_none();
                 self.$tokens.info_by_id.insert(&token_id, &token);
 
-                //withhold storage cost when needed, else refund all
                 let storage_used = if is_new_approval {
                     bytes_for_approved_account_id(&account_id)
                 } else {
@@ -430,7 +261,6 @@ macro_rules! impl_nft_tokens {
                 };
                 refund_storage_deposit(storage_used);
 
-                //if message, call on approval
                 if let Some(msg) = msg {
                     ext_nft_receiver::nft_on_approve(
                         token_id,
@@ -447,14 +277,12 @@ macro_rules! impl_nft_tokens {
 
             fn nft_revoke(&mut self, token_id: TokenKey, account_id: AccountId) {
                 assert_one_yocto();
-                //get the token info for the provided token id or panic with message
+
                 let mut token = self
                     .$tokens
                     .info_by_id
                     .get(&token_id)
                     .expect("Token not found");
-
-                //validate the caller is the owner
                 let sender_id = env::predecessor_account_id();
                 assert_eq!(
                     &sender_id, &token.owner_id,
@@ -469,14 +297,12 @@ macro_rules! impl_nft_tokens {
 
             fn nft_revoke_all(&mut self, token_id: TokenKey) {
                 assert_one_yocto();
-                //get the token info for the provided token id or panic with message
+
                 let mut token = self
                     .$tokens
                     .info_by_id
                     .get(&token_id)
                     .expect("Token not found");
-
-                //validate the caller is the owner
                 let sender_id = env::predecessor_account_id();
                 assert_eq!(
                     &sender_id, &token.owner_id,
@@ -504,9 +330,9 @@ macro_rules! impl_nft_tokens {
                     .info_by_id
                     .get(&token_id.into())
                     .expect("Token not found");
-                token
+                return token
                     .payout
-                    .compute(token.owner_id, balance.into(), max_len_payout)
+                    .compute(token.owner_id, balance.into(), max_len_payout);
             }
 
             fn nft_transfer_payout(
@@ -527,27 +353,28 @@ macro_rules! impl_nft_tokens {
                     Some(memo),
                 );
                 refund_approved_accounts(token.owner_id.clone(), &token.approved_accounts);
-                token
+                return token
                     .payout
-                    .compute(token.owner_id, balance.into(), max_len_payout)
+                    .compute(token.owner_id, balance.into(), max_len_payout);
             }
         }
 
         #[near_bindgen]
         impl NftEnumeration for $contract {
             fn nft_total_supply(&self) -> U128 {
-                U128(self.$tokens.data_for_id.len() as u128)
+                return U128(self.$tokens.data_for_id.len() as u128);
             }
 
             fn nft_tokens(&self, from_index: Option<U128>, limit: Option<u64>) -> Vec<JsonToken> {
                 let start = u128::from(from_index.unwrap_or(U128(0)));
-                self.$tokens
+                return self
+                    .$tokens
                     .data_for_id
                     .keys()
                     .skip(start as usize)
                     .take(limit.unwrap_or(50) as usize)
                     .map(|token_id| self.nft_token(token_id.clone()).unwrap())
-                    .collect()
+                    .collect();
             }
 
             fn nft_supply_for_owner(&self, account_id: AccountId) -> U128 {
@@ -556,10 +383,9 @@ macro_rules! impl_nft_tokens {
                     .list_per_owner
                     .get(&hash_storage_key(account_id.as_bytes()))
                 {
-                    U128(tokens_for_owner_set.len() as u128)
-                } else {
-                    U128(0)
+                    return U128(tokens_for_owner_set.len() as u128);
                 }
+                return U128(0);
             }
 
             fn nft_tokens_for_owner(
@@ -580,9 +406,8 @@ macro_rules! impl_nft_tokens {
                         .take(limit.unwrap_or(50) as usize)
                         .map(|token_id| self.nft_token(token_id.clone()).unwrap())
                         .collect();
-                } else {
-                    return vec![];
-                };
+                }
+                return vec![];
             }
         }
 
@@ -598,7 +423,6 @@ macro_rules! impl_nft_tokens {
                 approved_account_ids: HashMap<AccountId, u64>,
                 memo: Option<String>,
             ) -> bool {
-                //when all went well the only thing left is to refund the storage cost
                 if let PromiseResult::Successful(value) = env::promise_result(0) {
                     if let Ok(return_token) = near_sdk::serde_json::from_slice::<bool>(&value) {
                         if !return_token {
@@ -608,7 +432,6 @@ macro_rules! impl_nft_tokens {
                     }
                 }
 
-                //if there is some token info, and the token is set to the new owner, undo the transaction
                 let mut token = if let Some(token) = self.$tokens.info_by_id.get(&token_id) {
                     if token.owner_id != receiver_id {
                         refund_approved_accounts(owner_id, &approved_account_ids);
@@ -616,25 +439,19 @@ macro_rules! impl_nft_tokens {
                     }
                     token
                 } else {
-                    //else the contract broke, and the token was burned, refund storage
                     refund_approved_accounts(owner_id, &approved_account_ids);
                     return true;
                 };
 
-                //return the token to the original owner and remove it from the new owner
                 self.$tokens.remove_from_owner(&token_id, &receiver_id);
                 self.$tokens.add_to_owner(&token_id, &owner_id);
 
                 token.owner_id = owner_id.clone();
-
-                //refund the approved IDs storage that the reciever may have set on the token
                 refund_approved_accounts(receiver_id.clone(), &token.approved_accounts);
 
-                //restore the old approved accounts information
                 token.approved_accounts = approved_account_ids;
                 self.$tokens.info_by_id.insert(&token_id, &token);
 
-                //log an event message for the undo transfer
                 let nft_transfer_log: EventLog = EventLog {
                     standard: EVENT_NFT_METADATA_SPEC.to_string(),
                     version: EVENT_NFT_STANDARD_NAME.to_string(),
@@ -648,7 +465,7 @@ macro_rules! impl_nft_tokens {
                 };
                 env::log_str(&nft_transfer_log.to_string());
 
-                false
+                return false;
             }
         }
     };
