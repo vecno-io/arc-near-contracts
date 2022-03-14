@@ -27,9 +27,9 @@ pub struct App {
 
 arc_standard::impl_meta!(App, metadata);
 
-arc_standard::impl_nft_tokens!(App, token);
 arc_standard::impl_arc_actors!(App, token, actor);
 arc_standard::impl_arc_guilds!(App, token, guild);
+arc_standard::impl_nft_tokens!(App, token, actor, guild);
 
 // TODO: move to contract implementaion
 //create the actor and store it

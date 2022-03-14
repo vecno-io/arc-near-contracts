@@ -7,7 +7,7 @@ pub trait NftCore {
         &mut self,
         receiver_id: AccountId,
         token_id: TokenKey,
-        approval_id: u64,
+        approval_id: Option<u64>,
         memo: Option<String>,
     );
 
@@ -15,7 +15,7 @@ pub trait NftCore {
         &mut self,
         receiver_id: AccountId,
         token_id: TokenKey,
-        approval_id: u64,
+        approval_id: Option<u64>,
         memo: Option<String>,
         msg: String,
     ) -> PromiseOrValue<bool>;
@@ -43,8 +43,8 @@ pub trait NftRoyalties {
         &mut self,
         receiver_id: AccountId,
         token_id: TokenKey,
-        approval_id: u64,
-        memo: String,
+        approval_id: Option<u64>,
+        memo: Option<String>,
         balance: U128,
         max_len_payout: u32,
     ) -> JsonPayout;
@@ -67,7 +67,7 @@ pub trait NftEnumeration {
 
 #[macro_export]
 macro_rules! impl_nft_tokens {
-    ($contract: ident, $tokens: ident) => {
+    ($contract: ident, $tokens: ident, $actors: ident, $guilds: ident) => {
         use $crate::*;
 
         #[ext_contract(ext_nft_receiver)]
@@ -133,18 +133,19 @@ macro_rules! impl_nft_tokens {
                 &mut self,
                 receiver_id: AccountId,
                 token_id: TokenKey,
-                approval_id: u64,
+                approval_id: Option<u64>,
                 memo: Option<String>,
             ) {
                 assert_one_yocto();
                 let sender_id = env::predecessor_account_id();
-                let token = self.$tokens.transfer(
-                    &sender_id,
-                    &receiver_id,
-                    &token_id,
-                    Some(approval_id),
-                    memo,
-                );
+                let token =
+                    self.$tokens
+                        .transfer(&token_id, &sender_id, &receiver_id, approval_id, memo);
+
+                if (token.type_id == TokenType::Actor) {
+                    self.$actors.transfer(&token_id, &sender_id, &receiver_id);
+                }
+
                 refund_approved_accounts(token.owner_id.clone(), &token.approved_accounts);
             }
 
@@ -153,7 +154,7 @@ macro_rules! impl_nft_tokens {
                 &mut self,
                 receiver_id: AccountId,
                 token_id: TokenKey,
-                approval_id: u64,
+                approval_id: Option<u64>,
                 memo: Option<String>,
                 msg: String,
             ) -> PromiseOrValue<bool> {
@@ -168,12 +169,16 @@ macro_rules! impl_nft_tokens {
 
                 let sender_id = env::predecessor_account_id();
                 let token = self.$tokens.transfer(
+                    &token_id,
                     &sender_id,
                     &receiver_id,
-                    &token_id,
-                    Some(approval_id),
+                    approval_id,
                     memo.clone(),
                 );
+
+                if (token.type_id == TokenType::Actor) {
+                    self.$actors.transfer(&token_id, &sender_id, &receiver_id);
+                }
 
                 let mut authorized_id = None;
                 if sender_id != token.owner_id {
@@ -339,19 +344,21 @@ macro_rules! impl_nft_tokens {
                 &mut self,
                 receiver_id: AccountId,
                 token_id: TokenKey,
-                approval_id: u64,
-                memo: String,
+                approval_id: Option<u64>,
+                memo: Option<String>,
                 balance: U128,
                 max_len_payout: u32,
             ) -> JsonPayout {
                 assert_one_yocto();
-                let token = self.$tokens.transfer(
-                    &env::predecessor_account_id(),
-                    &receiver_id,
-                    &token_id,
-                    Some(approval_id),
-                    Some(memo),
-                );
+                let sender_id = env::predecessor_account_id();
+                let token =
+                    self.$tokens
+                        .transfer(&token_id, &sender_id, &receiver_id, approval_id, memo);
+
+                if (token.type_id == TokenType::Actor) {
+                    self.$actors.transfer(&token_id, &sender_id, &receiver_id);
+                }
+
                 refund_approved_accounts(token.owner_id.clone(), &token.approved_accounts);
                 return token
                     .payout
@@ -378,10 +385,8 @@ macro_rules! impl_nft_tokens {
             }
 
             fn nft_supply_for_owner(&self, account_id: AccountId) -> U128 {
-                if let Some(tokens_for_owner_set) = self
-                    .$tokens
-                    .list_per_owner
-                    .get(&hash_storage_key(account_id.as_bytes()))
+                if let Some(tokens_for_owner_set) =
+                    self.$tokens.list_per_owner.get(&account_id.into())
                 {
                     return U128(tokens_for_owner_set.len() as u128);
                 }
@@ -394,10 +399,8 @@ macro_rules! impl_nft_tokens {
                 from_index: Option<U128>,
                 limit: Option<u64>,
             ) -> Vec<JsonToken> {
-                if let Some(tokens_for_owner_set) = self
-                    .$tokens
-                    .list_per_owner
-                    .get(&hash_storage_key(account_id.as_bytes()))
+                if let Some(tokens_for_owner_set) =
+                    self.$tokens.list_per_owner.get(&account_id.into())
                 {
                     let start = u128::from(from_index.unwrap_or(U128(0)));
                     return tokens_for_owner_set
@@ -443,8 +446,10 @@ macro_rules! impl_nft_tokens {
                     return true;
                 };
 
-                self.$tokens.remove_from_owner(&token_id, &receiver_id);
-                self.$tokens.add_to_owner(&token_id, &owner_id);
+                self.$tokens
+                    .remove_from_owner(receiver_id.clone().into(), &token_id);
+                self.$tokens
+                    .add_to_owner(owner_id.clone().into(), &token_id);
 
                 token.owner_id = owner_id.clone();
                 refund_approved_accounts(receiver_id.clone(), &token.approved_accounts);

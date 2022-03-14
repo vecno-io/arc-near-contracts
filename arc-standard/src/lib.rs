@@ -24,6 +24,39 @@ pub use crate::token::*;
 
 pub type Admin = LazyOption<GuildKey>;
 
+// TODO AccountKey Needs to be fixed size,
+// the annoying part: no support for [u8, 64].
+
+#[derive(Clone, BorshSerialize)]
+pub struct AccountKey(String);
+
+impl ToString for AccountKey {
+    fn to_string(&self) -> String {
+        self.0.to_string()
+    }
+}
+
+impl From<String> for AccountKey {
+    fn from(item: String) -> Self {
+        AccountKey { 0: item }
+    }
+}
+
+impl From<AccountId> for AccountKey {
+    fn from(item: AccountId) -> Self {
+        AccountKey {
+            0: item.to_string(),
+        }
+    }
+}
+
+impl From<&AccountKey> for AccountId {
+    fn from(item: &AccountKey) -> Self {
+        //item.to_string() as AccountId
+        AccountId::new_unchecked(item.to_string())
+    }
+}
+
 // #[near_bindgen]
 // #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 // pub struct Contract {

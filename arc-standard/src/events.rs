@@ -58,7 +58,7 @@ impl fmt::Display for EventLog {
 #[serde(crate = "near_sdk::serde")]
 pub struct ArcMintLog {
     pub owner_id: String,
-    pub token_type: String,
+    pub token_type: TokenType,
     pub token_list: Vec<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]

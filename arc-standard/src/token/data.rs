@@ -4,10 +4,12 @@ use std::collections::HashMap;
 
 const MAX_BASE_POINTS_TOTAL: u16 = 10000;
 
-#[derive(Copy, Clone, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
+#[derive(
+    Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, BorshDeserialize, BorshSerialize,
+)]
 #[serde(crate = "near_sdk::serde")]
 pub enum TokenType {
-    None,
+    None = 0,
     Actor,
     Asset,
     Guild,

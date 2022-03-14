@@ -2,7 +2,7 @@ use crate::*;
 
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedMap, UnorderedSet};
-use near_sdk::{env, require, AccountId, CryptoHash};
+use near_sdk::{env, require, AccountId};
 
 pub mod api;
 pub mod data;
@@ -15,7 +15,7 @@ pub enum StorageKey {
     TokenInfoById,
     TokenDataForId,
     TokenListPerOwner,
-    TokenListPerOwnerSet { owner_key: CryptoHash },
+    TokenListPerOwnerSet { owner_key: AccountKey },
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
@@ -25,7 +25,7 @@ pub struct Tokens {
     //keeps track of the tokens data for a given token key
     pub data_for_id: UnorderedMap<TokenKey, TokenData>,
     //keeps track of all the tokens for a given account key
-    pub list_per_owner: LookupMap<CryptoHash, UnorderedSet<TokenKey>>,
+    pub list_per_owner: LookupMap<AccountKey, UnorderedSet<TokenKey>>,
 }
 
 impl Tokens {
@@ -40,11 +40,11 @@ impl Tokens {
 
     pub fn register(
         &mut self,
-        owner_id: AccountId,
         type_id: TokenType,
         token_id: TokenKey,
         token_data: TokenData,
         token_payout: TokenPayout,
+        receiver_id: AccountId,
         memo: Option<String>,
     ) {
         token_data.assert_valid();
@@ -55,7 +55,7 @@ impl Tokens {
 
         let token = Token {
             type_id: type_id,
-            owner_id: owner_id.clone(),
+            owner_id: receiver_id.clone(),
             payout: token_payout,
             approval_index: 0,
             approved_accounts: Default::default(),
@@ -64,13 +64,20 @@ impl Tokens {
             self.info_by_id.insert(&token_id, &token).is_none(),
             "A token with the provided id already exits"
         );
-        self.add_to_owner(&token_id, &owner_id);
+
+        self.add_to_owner(receiver_id.into(), &token_id);
         self.data_for_id.insert(&token_id, &token_data);
 
-        // TODO: Implement events for token registration
-        if let Some(message) = memo {
-            env::log_str(&message);
-        }
+        let nft_transfer_log: EventLog = EventLog {
+            standard: EVENT_NFT_STANDARD_NAME.to_string(),
+            version: EVENT_NFT_METADATA_SPEC.to_string(),
+            event: EventLogVariant::NftMint(vec![NftMintLog {
+                owner_id: token.owner_id.to_string(),
+                token_ids: vec![token_id.to_string()],
+                memo,
+            }]),
+        };
+        env::log_str(&nft_transfer_log.to_string());
 
         // TODO: Storage cost is now the contracts task
         //refund_storage_deposit(env::storage_usage() - storage_usage);
@@ -78,38 +85,36 @@ impl Tokens {
 
     pub fn transfer(
         &mut self,
+        token_id: &TokenKey,
         sender_id: &AccountId,
         receiver_id: &AccountId,
-        token_id: &TokenKey,
         approval_id: Option<u64>,
         memo: Option<String>,
     ) -> Token {
-        let token = self.info_by_id.get(token_id).expect("Token info not found");
-        assert_ne!(
-            &token.owner_id, receiver_id,
-            "The token owner and the receiver should be different"
-        );
+        let token = self
+            .info_by_id
+            .get(&token_id)
+            .expect("Token info not found");
 
         if sender_id != &token.owner_id {
-            if !token.approved_accounts.contains_key(sender_id) {
+            if !token.approved_accounts.contains_key(&sender_id) {
                 env::panic_str("Unauthorized transfer");
             }
-
             if let Some(enforced_approval_id) = approval_id {
                 let actual_approval_id = token
                     .approved_accounts
-                    .get(sender_id)
+                    .get(&sender_id)
                     .expect("Sender is not authorized to transfer");
-
                 assert_eq!(
                     actual_approval_id, &enforced_approval_id,
                     "Sender provided an invalid approval id",
                 );
             }
         }
-
-        self.remove_from_owner(token_id, &token.owner_id);
-        self.add_to_owner(token_id, receiver_id);
+        assert_ne!(
+            &token.owner_id, receiver_id,
+            "The owner and the receiver should be different."
+        );
 
         let new_token = Token {
             type_id: token.type_id,
@@ -118,60 +123,30 @@ impl Tokens {
             approval_index: token.approval_index,
             approved_accounts: Default::default(),
         };
-        self.info_by_id.insert(token_id, &new_token);
+        self.info_by_id.insert(&token_id, &new_token);
 
-        // TODO: Implement events for actor registration
-        if let Some(memo) = memo.as_ref() {
-            env::log_str(&format!("Memo: {}", memo).to_string());
+        self.remove_from_owner(sender_id.clone().into(), &token_id);
+        self.add_to_owner(receiver_id.clone().into(), &token_id);
+
+        let mut authorized_id = None;
+        if approval_id.is_some() {
+            authorized_id = Some(sender_id.to_string());
         }
-        // let mut authorized_id = None;
-        // if approval_id.is_some() {
-        //     authorized_id = Some(sender_id.to_string());
-        // }
-        // let nft_transfer_log: EventLog = EventLog {
-        //     standard: EVENT_NFT_STANDARD_NAME.to_string(),
-        //     version: EVENT_NFT_METADATA_SPEC.to_string(),
-        //     event: EventLogVariant::NftTransfer(vec![NftTransferLog {
-        //         authorized_id,
-        //         old_owner_id: token.owner_id.to_string(),
-        //         new_owner_id: receiver_id.to_string(),
-        //         token_ids: vec![token_id.to_string()],
-        //         memo,
-        //     }]),
-        // };
-        // env::log_str(&nft_transfer_log.to_string());
+        let nft_transfer_log: EventLog = EventLog {
+            standard: EVENT_NFT_STANDARD_NAME.to_string(),
+            version: EVENT_NFT_METADATA_SPEC.to_string(),
+            event: EventLogVariant::NftTransfer(vec![NftTransferLog {
+                authorized_id,
+                old_owner_id: token.owner_id.to_string(),
+                new_owner_id: receiver_id.to_string(),
+                token_ids: vec![token_id.to_string()],
+                memo,
+            }]),
+        };
+        env::log_str(&nft_transfer_log.to_string());
 
-        return token;
-    }
-
-    // TODO Rename token for to actor for
-    // TODO Implement actors/guilds per owner update
-    pub fn add_to_owner(&mut self, token_id: &TokenKey, owner_id: &AccountId) {
-        let owner_key = hash_storage_key(owner_id.as_bytes());
-        let mut tokens_set = self.list_per_owner.get(&owner_key).unwrap_or_else(|| {
-            UnorderedSet::new(
-                StorageKey::TokenListPerOwnerSet { owner_key }
-                    .try_to_vec()
-                    .unwrap(),
-            )
-        });
-        tokens_set.insert(token_id);
-        self.list_per_owner.insert(&owner_key, &tokens_set);
-    }
-
-    // TODO Rename token for to actor for
-    // TODO Implement actors/guilds per owner update
-    pub fn remove_from_owner(&mut self, token_id: &TokenKey, account_id: &AccountId) {
-        let owner_key = hash_storage_key(account_id.as_bytes());
-        let mut tokens_set = self
-            .list_per_owner
-            .get(&owner_key)
-            .expect("Sender must own the token");
-        if tokens_set.len() == 1 {
-            self.list_per_owner.remove(&owner_key);
-        } else {
-            tokens_set.remove(token_id);
-            self.list_per_owner.insert(&owner_key, &tokens_set);
-        }
+        token
     }
 }
+
+crate::impl_item_is_owned!(Tokens, TokenKey, TokenListPerOwnerSet);

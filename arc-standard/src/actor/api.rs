@@ -46,7 +46,7 @@ macro_rules! impl_arc_actors {
             fn arc_actors(&self, from_index: Option<U128>, limit: Option<u64>) -> Vec<JsonActor> {
                 let start = u128::from(from_index.unwrap_or(U128(0)));
                 return self
-                    .$tokens
+                    .$actors
                     .data_for_id
                     .keys()
                     .skip(start as usize)
@@ -55,12 +55,9 @@ macro_rules! impl_arc_actors {
                     .collect();
             }
 
-            // TODO Fix Actors per owner, atm it just looks at all tokens, see registration
             fn arc_actor_supply_for_owner(&self, account_id: AccountId) -> U128 {
-                if let Some(tokens_for_owner_set) = self
-                    .$tokens
-                    .list_per_owner
-                    .get(&hash_storage_key(account_id.as_bytes()))
+                if let Some(tokens_for_owner_set) =
+                    self.$actors.list_per_owner.get(&account_id.into())
                 {
                     return U128(tokens_for_owner_set.len() as u128);
                 }
@@ -73,11 +70,8 @@ macro_rules! impl_arc_actors {
                 from_index: Option<U128>,
                 limit: Option<u64>,
             ) -> Vec<JsonActor> {
-                // TODO Swap to actors for owner or filet
-                if let Some(tokens_for_owner_set) = self
-                    .$tokens
-                    .list_per_owner
-                    .get(&hash_storage_key(account_id.as_bytes()))
+                if let Some(tokens_for_owner_set) =
+                    self.$actors.list_per_owner.get(&account_id.into())
                 {
                     let start = u128::from(from_index.unwrap_or(U128(0)));
                     return tokens_for_owner_set

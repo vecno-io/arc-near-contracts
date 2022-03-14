@@ -84,3 +84,37 @@ pub fn refund_approved_accounts(
 pub fn royalty_to_payout(royalty_percentage: u16, amount_to_pay: Balance) -> U128 {
     U128(royalty_percentage as u128 * amount_to_pay / MAX_BASE_POINTS_TOTAL as u128)
 }
+
+#[macro_export]
+macro_rules! impl_item_is_owned {
+    ($struct: ident, $key: ident, $store: ident) => {
+        impl $struct {
+            pub fn add_to_owner(&mut self, owner: AccountKey, id: &$key) {
+                let mut owner_set = self.list_per_owner.get(&owner).unwrap_or_else(|| {
+                    UnorderedSet::new(
+                        StorageKey::$store {
+                            owner_key: owner.clone(),
+                        }
+                        .try_to_vec()
+                        .unwrap(),
+                    )
+                });
+                owner_set.insert(id);
+                self.list_per_owner.insert(&owner, &owner_set);
+            }
+
+            pub fn remove_from_owner(&mut self, owner: AccountKey, id: &$key) {
+                let mut owner_set = self
+                    .list_per_owner
+                    .get(&owner)
+                    .expect("owner set not found");
+                if owner_set.len() == 1 {
+                    self.list_per_owner.remove(&owner);
+                } else {
+                    owner_set.remove(id);
+                    self.list_per_owner.insert(&owner, &owner_set);
+                }
+            }
+        }
+    };
+}

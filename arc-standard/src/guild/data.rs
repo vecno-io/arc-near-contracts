@@ -2,10 +2,12 @@ use crate::*;
 
 const MAX_BASE_POINTS_TOTAL: u16 = 10000;
 
-#[derive(Copy, Clone, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
+#[derive(
+    Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, BorshDeserialize, BorshSerialize,
+)]
 #[serde(crate = "near_sdk::serde")]
 pub enum GuildType {
-    Base,
+    Base = 0,
 }
 
 #[derive(Clone, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
