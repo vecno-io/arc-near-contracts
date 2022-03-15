@@ -9,7 +9,7 @@ use near_sdk::{env, require, AccountId, Balance, CryptoHash, Gas, Promise, Promi
 pub mod intern;
 
 pub mod actor;
-pub mod events;
+pub mod event;
 pub mod guild;
 pub mod meta;
 pub mod token;
@@ -17,7 +17,7 @@ pub mod token;
 pub use crate::intern::*;
 
 pub use crate::actor::*;
-pub use crate::events::*;
+pub use crate::event::*;
 pub use crate::guild::*;
 pub use crate::meta::*;
 pub use crate::token::*;
@@ -52,7 +52,6 @@ impl From<AccountId> for AccountKey {
 
 impl From<&AccountKey> for AccountId {
     fn from(item: &AccountKey) -> Self {
-        //item.to_string() as AccountId
         AccountId::new_unchecked(item.to_string())
     }
 }

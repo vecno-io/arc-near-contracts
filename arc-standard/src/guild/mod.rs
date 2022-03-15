@@ -1,3 +1,5 @@
+use crate::*;
+
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedMap};
 use near_sdk::{env, require, AccountId};
@@ -52,8 +54,8 @@ impl Guilds {
         // let storage_usage = env::storage_usage();
 
         let guild = Guild {
-            ceo_id: ceo_id,
-            type_id: type_id,
+            ceo_id: ceo_id.clone(),
+            type_id: type_id.clone(),
         };
         require!(
             self.info_by_id.insert(&guild_key, &guild).is_none(),
@@ -62,13 +64,19 @@ impl Guilds {
         self.data_for_id.insert(&guild_key, &guild_data);
         self.board_for_id.insert(&guild_key, &guild_board);
 
-        // TODO: Implement events for guild registration
-        if let Some(message) = memo {
-            env::log_str(&message);
-        }
-
         // TODO Implement tracking per member? (board, owners)
         //self.add_to_member(&guild_id, &member_id);
+
+        let arc_register_log: ArcEventLog = ArcEventLog {
+            module: EVENT_ARC_STANDARD_GUILD.to_string(),
+            version: EVENT_ARC_METADATA_SPEC.to_string(),
+            event: ArcEventVariant::ArcRegister(vec![ArcRegisterLog {
+                user_id: ceo_id.to_string(),
+                keys_list: vec![guild_key.to_string()],
+                memo,
+            }]),
+        };
+        env::log_str(&arc_register_log.to_string());
 
         // TODO: Storage cost is now the contracts task
         //refund_storage_deposit(env::storage_usage() - storage_usage);

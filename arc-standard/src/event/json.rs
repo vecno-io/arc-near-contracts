@@ -2,21 +2,16 @@ use crate::*;
 
 use std::fmt;
 
-pub const EVENT_ARC_METADATA_SPEC: &str = "1.0.0";
-pub const EVENT_ARC_STANDARD_NAME: &str = "arc-core";
-
 pub const EVENT_NFT_METADATA_SPEC: &str = "1.0.0";
 pub const EVENT_NFT_STANDARD_NAME: &str = "nep171";
 
-/// Enum that represents the data type of the EventLog.
-/// The enum can either be an NftMint or an NftTransfer.
+/// Enum that represents the data type for JsonEventLog.
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "event", content = "data")]
 #[serde(rename_all = "snake_case")]
 #[serde(crate = "near_sdk::serde")]
 #[non_exhaustive]
-pub enum EventLogVariant {
-    ArcMint(Vec<ArcMintLog>),
+pub enum JsonEventVariant {
     NftMint(Vec<NftMintLog>),
     NftTransfer(Vec<NftTransferLog>),
 }
@@ -29,40 +24,21 @@ pub enum EventLogVariant {
 /// * `event`: associate event data
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(crate = "near_sdk::serde")]
-pub struct EventLog {
+pub struct JsonEventLog {
     pub standard: String,
     pub version: String,
 
-    // `flatten` to not have "event": {<EventLogVariant>} in the JSON, just have the contents of {<EventLogVariant>}.
     #[serde(flatten)]
-    pub event: EventLogVariant,
+    pub event: JsonEventVariant,
 }
 
-impl fmt::Display for EventLog {
+impl fmt::Display for JsonEventLog {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_fmt(format_args!(
             "EVENT_JSON:{}",
             &serde_json::to_string(self).map_err(|_| fmt::Error)?
         ))
     }
-}
-
-/// An event log to capture token minting
-///
-/// Arguments
-/// * `owner_id`: "account.near"
-/// * `token_type`: "arc:type"
-/// * `token_list`: ["1", "abc"]
-/// * `memo`: optional message
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(crate = "near_sdk::serde")]
-pub struct ArcMintLog {
-    pub owner_id: String,
-    pub token_type: TokenType,
-    pub token_list: Vec<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub memo: Option<String>,
 }
 
 /// An event log to capture token minting
@@ -110,10 +86,10 @@ mod tests {
     #[test]
     fn nep_format_vector() {
         let expected = r#"EVENT_JSON:{"standard":"nep171","version":"1.0.0","event":"nft_mint","data":[{"owner_id":"foundation.near","token_ids":["aurora","proximitylabs"]},{"owner_id":"user1.near","token_ids":["meme"]}]}"#;
-        let log = EventLog {
-            standard: "nep171".to_string(),
-            version: "1.0.0".to_string(),
-            event: EventLogVariant::NftMint(vec![
+        let log = JsonEventLog {
+            standard: EVENT_NFT_STANDARD_NAME.to_string(),
+            version: EVENT_NFT_METADATA_SPEC.to_string(),
+            event: JsonEventVariant::NftMint(vec![
                 NftMintLog {
                     owner_id: "foundation.near".to_owned(),
                     token_ids: vec!["aurora".to_string(), "proximitylabs".to_string()],
@@ -132,10 +108,10 @@ mod tests {
     #[test]
     fn nep_format_mint() {
         let expected = r#"EVENT_JSON:{"standard":"nep171","version":"1.0.0","event":"nft_mint","data":[{"owner_id":"foundation.near","token_ids":["aurora","proximitylabs"]}]}"#;
-        let log = EventLog {
+        let log = JsonEventLog {
             standard: "nep171".to_string(),
             version: "1.0.0".to_string(),
-            event: EventLogVariant::NftMint(vec![NftMintLog {
+            event: JsonEventVariant::NftMint(vec![NftMintLog {
                 owner_id: "foundation.near".to_owned(),
                 token_ids: vec!["aurora".to_string(), "proximitylabs".to_string()],
                 memo: None,
@@ -147,10 +123,10 @@ mod tests {
     #[test]
     fn nep_format_transfer_all_fields() {
         let expected = r#"EVENT_JSON:{"standard":"nep171","version":"1.0.0","event":"nft_transfer","data":[{"authorized_id":"market.near","old_owner_id":"user1.near","new_owner_id":"user2.near","token_ids":["token"],"memo":"Go Team!"}]}"#;
-        let log = EventLog {
+        let log = JsonEventLog {
             standard: "nep171".to_string(),
             version: "1.0.0".to_string(),
-            event: EventLogVariant::NftTransfer(vec![NftTransferLog {
+            event: JsonEventVariant::NftTransfer(vec![NftTransferLog {
                 authorized_id: Some("market.near".to_string()),
                 old_owner_id: "user1.near".to_string(),
                 new_owner_id: "user2.near".to_string(),

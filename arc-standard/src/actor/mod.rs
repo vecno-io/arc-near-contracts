@@ -54,17 +54,16 @@ impl Actors {
 
         self.add_to_owner(receiver_id.clone().into(), &token_id);
 
-        let nft_transfer_log: EventLog = EventLog {
-            standard: EVENT_ARC_STANDARD_NAME.to_string(),
+        let arc_register_log: ArcEventLog = ArcEventLog {
+            module: EVENT_ARC_STANDARD_ACTOR.to_string(),
             version: EVENT_ARC_METADATA_SPEC.to_string(),
-            event: EventLogVariant::ArcMint(vec![ArcMintLog {
-                owner_id: receiver_id.to_string(),
-                token_type: TokenType::Actor,
-                token_list: vec![token_id.to_string()],
+            event: ArcEventVariant::ArcRegister(vec![ArcRegisterLog {
+                user_id: receiver_id.to_string(),
+                keys_list: vec![token_id.to_string()],
                 memo,
             }]),
         };
-        env::log_str(&nft_transfer_log.to_string());
+        env::log_str(&arc_register_log.to_string());
 
         // TODO: Storage cost is now the contracts task
         //refund_storage_deposit(env::storage_usage() - storage_usage);

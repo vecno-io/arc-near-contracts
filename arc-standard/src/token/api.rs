@@ -457,10 +457,10 @@ macro_rules! impl_nft_tokens {
                 token.approved_accounts = approved_account_ids;
                 self.$tokens.info_by_id.insert(&token_id, &token);
 
-                let nft_transfer_log: EventLog = EventLog {
+                let nft_transfer_log: JsonEventLog = JsonEventLog {
                     standard: EVENT_NFT_METADATA_SPEC.to_string(),
                     version: EVENT_NFT_STANDARD_NAME.to_string(),
-                    event: EventLogVariant::NftTransfer(vec![NftTransferLog {
+                    event: JsonEventVariant::NftTransfer(vec![NftTransferLog {
                         authorized_id,
                         old_owner_id: receiver_id.to_string(),
                         new_owner_id: owner_id.to_string(),

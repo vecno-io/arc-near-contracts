@@ -68,10 +68,10 @@ impl Tokens {
         self.add_to_owner(receiver_id.into(), &token_id);
         self.data_for_id.insert(&token_id, &token_data);
 
-        let nft_transfer_log: EventLog = EventLog {
+        let nft_transfer_log: JsonEventLog = JsonEventLog {
             standard: EVENT_NFT_STANDARD_NAME.to_string(),
             version: EVENT_NFT_METADATA_SPEC.to_string(),
-            event: EventLogVariant::NftMint(vec![NftMintLog {
+            event: JsonEventVariant::NftMint(vec![NftMintLog {
                 owner_id: token.owner_id.to_string(),
                 token_ids: vec![token_id.to_string()],
                 memo,
@@ -132,10 +132,10 @@ impl Tokens {
         if approval_id.is_some() {
             authorized_id = Some(sender_id.to_string());
         }
-        let nft_transfer_log: EventLog = EventLog {
+        let nft_transfer_log: JsonEventLog = JsonEventLog {
             standard: EVENT_NFT_STANDARD_NAME.to_string(),
             version: EVENT_NFT_METADATA_SPEC.to_string(),
-            event: EventLogVariant::NftTransfer(vec![NftTransferLog {
+            event: JsonEventVariant::NftTransfer(vec![NftTransferLog {
                 authorized_id,
                 old_owner_id: token.owner_id.to_string(),
                 new_owner_id: receiver_id.to_string(),
