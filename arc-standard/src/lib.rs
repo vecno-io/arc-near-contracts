@@ -6,6 +6,8 @@ use near_sdk::json_types::{Base64VecU8, U128};
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{env, require, AccountId, Balance, CryptoHash, Gas, Promise, PromiseOrValue};
 
+pub const ARC_STANDARD_SPEC: &str = "ARC-1.0.0";
+
 pub mod intern;
 
 pub mod actor;
@@ -56,33 +58,33 @@ impl From<&AccountKey> for AccountId {
     }
 }
 
-// pub trait ArcApp {
-//     fn arc_create_guild(
-//         &mut self,
-//         ceo_id: AccountId,
-//         guild_key: GuildId,
-//         guild_type: GuildType,
-//         guild_data: GuildData,
-//         guild_board: GuildBoard,
-//     );
+pub trait ArcApp {
+    fn arc_create_guild(
+        &mut self,
+        ceo_id: AccountId,
+        guild_key: GuildId,
+        guild_type: GuildType,
+        guild_data: GuildData,
+        guild_board: GuildBoard,
+    );
 
-//     fn arc_mint_actor(
-//         &mut self,
-//         owner_id: AccountId,
-//         token_id: TokenId,
-//         actor_data: ActorData,
-//         token_data: TokenData,
-//         token_payout: TokenPayout,
-//     );
+    fn arc_mint_actor(
+        &mut self,
+        owner_id: AccountId,
+        token_id: TokenId,
+        actor_data: ActorData,
+        token_data: TokenData,
+        token_payout: TokenPayout,
+    );
 
-//     // fn arc_mint_guild_member(
-//     //     &mut self,
-//     //     owner_id: AccountId,
-//     //     token_id: TokenId,
-//     //     guild_key: GuildId,
-//     //     token_data: TokenData,
-//     // );
-// }
+    // fn arc_mint_guild_member(
+    //     &mut self,
+    //     owner_id: AccountId,
+    //     token_id: TokenId,
+    //     guild_key: GuildId,
+    //     token_data: TokenData,
+    // );
+}
 
 // #[near_bindgen]
 // #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
