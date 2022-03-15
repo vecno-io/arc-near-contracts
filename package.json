@@ -5,6 +5,7 @@
     "author": "Koen Van Rulo",
     "license": "MIT",
     "scripts": {
-				"build": "./build.sh"
+        "test": "./run-test.sh",
+        "build": "./run-build.sh"
     }
 }
