@@ -4,7 +4,7 @@ use crate::*;
 #[serde(crate = "near_sdk::serde")]
 pub struct JsonActor {
     //token ID
-    pub token_id: TokenKey,
+    pub token_id: TokenId,
     //owner of the token
     pub owner_id: AccountId,
     //token metadata

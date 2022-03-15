@@ -1,12 +1,12 @@
 use crate::*;
 
 pub trait NftCore {
-    fn nft_token(&self, token_id: TokenKey) -> Option<JsonToken>;
+    fn nft_token(&self, token_id: TokenId) -> Option<JsonToken>;
 
     fn nft_transfer(
         &mut self,
         receiver_id: AccountId,
-        token_id: TokenKey,
+        token_id: TokenId,
         approval_id: Option<u64>,
         memo: Option<String>,
     );
@@ -14,7 +14,7 @@ pub trait NftCore {
     fn nft_transfer_call(
         &mut self,
         receiver_id: AccountId,
-        token_id: TokenKey,
+        token_id: TokenId,
         approval_id: Option<u64>,
         memo: Option<String>,
         msg: String,
@@ -24,16 +24,16 @@ pub trait NftCore {
 pub trait NftApproval {
     fn nft_is_approved(
         &self,
-        token_id: TokenKey,
+        token_id: TokenId,
         approved_account_id: AccountId,
         approval_id: Option<u64>,
     ) -> bool;
 
-    fn nft_approve(&mut self, token_id: TokenKey, account_id: AccountId, msg: Option<String>);
+    fn nft_approve(&mut self, token_id: TokenId, account_id: AccountId, msg: Option<String>);
 
-    fn nft_revoke(&mut self, token_id: TokenKey, account_id: AccountId);
+    fn nft_revoke(&mut self, token_id: TokenId, account_id: AccountId);
 
-    fn nft_revoke_all(&mut self, token_id: TokenKey);
+    fn nft_revoke_all(&mut self, token_id: TokenId);
 }
 
 pub trait NftRoyalties {
@@ -42,7 +42,7 @@ pub trait NftRoyalties {
     fn nft_transfer_payout(
         &mut self,
         receiver_id: AccountId,
-        token_id: TokenKey,
+        token_id: TokenId,
         approval_id: Option<u64>,
         memo: Option<String>,
         balance: U128,
@@ -76,13 +76,13 @@ macro_rules! impl_nft_tokens {
                 &mut self,
                 sender_id: AccountId,
                 previous_owner_id: AccountId,
-                token_id: TokenKey,
+                token_id: TokenId,
                 msg: String,
             ) -> Promise;
 
             fn nft_on_approve(
                 &mut self,
-                token_id: TokenKey,
+                token_id: TokenId,
                 owner_id: AccountId,
                 approval_id: u64,
                 msg: String,
@@ -96,7 +96,7 @@ macro_rules! impl_nft_tokens {
                 authorized_id: Option<String>,
                 owner_id: AccountId,
                 receiver_id: AccountId,
-                token_id: TokenKey,
+                token_id: TokenId,
                 approved_account_ids: HashMap<AccountId, u64>,
                 memo: Option<String>,
             ) -> bool;
@@ -108,7 +108,7 @@ macro_rules! impl_nft_tokens {
                 authorized_id: Option<String>,
                 owner_id: AccountId,
                 receiver_id: AccountId,
-                token_id: TokenKey,
+                token_id: TokenId,
                 approved_account_ids: HashMap<AccountId, u64>,
                 memo: Option<String>,
             ) -> bool;
@@ -116,7 +116,7 @@ macro_rules! impl_nft_tokens {
 
         #[near_bindgen]
         impl NftCore for $contract {
-            fn nft_token(&self, token_id: TokenKey) -> Option<JsonToken> {
+            fn nft_token(&self, token_id: TokenId) -> Option<JsonToken> {
                 if let Some(tokendata) = self.$tokens.data_for_id.get(&token_id) {
                     let token = self.$tokens.info_by_id.get(&token_id).unwrap();
                     return Some(JsonToken {
@@ -132,7 +132,7 @@ macro_rules! impl_nft_tokens {
             fn nft_transfer(
                 &mut self,
                 receiver_id: AccountId,
-                token_id: TokenKey,
+                token_id: TokenId,
                 approval_id: Option<u64>,
                 memo: Option<String>,
             ) {
@@ -153,7 +153,7 @@ macro_rules! impl_nft_tokens {
             fn nft_transfer_call(
                 &mut self,
                 receiver_id: AccountId,
-                token_id: TokenKey,
+                token_id: TokenId,
                 approval_id: Option<u64>,
                 memo: Option<String>,
                 msg: String,
@@ -213,7 +213,7 @@ macro_rules! impl_nft_tokens {
         impl NftApproval for $contract {
             fn nft_is_approved(
                 &self,
-                token_id: TokenKey,
+                token_id: TokenId,
                 approved_account_id: AccountId,
                 approval_id: Option<u64>,
             ) -> bool {
@@ -233,7 +233,7 @@ macro_rules! impl_nft_tokens {
 
             fn nft_approve(
                 &mut self,
-                token_id: TokenKey,
+                token_id: TokenId,
                 account_id: AccountId,
                 msg: Option<String>,
             ) {
@@ -280,7 +280,7 @@ macro_rules! impl_nft_tokens {
                 }
             }
 
-            fn nft_revoke(&mut self, token_id: TokenKey, account_id: AccountId) {
+            fn nft_revoke(&mut self, token_id: TokenId, account_id: AccountId) {
                 assert_one_yocto();
 
                 let mut token = self
@@ -300,7 +300,7 @@ macro_rules! impl_nft_tokens {
                 }
             }
 
-            fn nft_revoke_all(&mut self, token_id: TokenKey) {
+            fn nft_revoke_all(&mut self, token_id: TokenId) {
                 assert_one_yocto();
 
                 let mut token = self
@@ -343,7 +343,7 @@ macro_rules! impl_nft_tokens {
             fn nft_transfer_payout(
                 &mut self,
                 receiver_id: AccountId,
-                token_id: TokenKey,
+                token_id: TokenId,
                 approval_id: Option<u64>,
                 memo: Option<String>,
                 balance: U128,
@@ -422,7 +422,7 @@ macro_rules! impl_nft_tokens {
                 authorized_id: Option<String>,
                 owner_id: AccountId,
                 receiver_id: AccountId,
-                token_id: TokenKey,
+                token_id: TokenId,
                 approved_account_ids: HashMap<AccountId, u64>,
                 memo: Option<String>,
             ) -> bool {

@@ -20,11 +20,11 @@ pub enum StorageKey {
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Guilds {
     //keeps track of the guild info for a given guild key
-    pub info_by_id: LookupMap<GuildKey, Guild>,
+    pub info_by_id: LookupMap<GuildId, Guild>,
     //keeps track of the guilds data for a given guild key
-    pub data_for_id: UnorderedMap<GuildKey, GuildData>,
+    pub data_for_id: UnorderedMap<GuildId, GuildData>,
     //keeps track of the guilds board for a given guild key
-    pub board_for_id: UnorderedMap<GuildKey, GuildBoard>,
+    pub board_for_id: UnorderedMap<GuildId, GuildBoard>,
 }
 
 impl Guilds {
@@ -39,9 +39,9 @@ impl Guilds {
 
     pub fn register(
         &mut self,
-        ceo_id: AccountId,
-        type_id: GuildType,
-        guild_key: GuildKey,
+        ceo_id: &AccountId,
+        guild_id: &GuildId,
+        guild_type: GuildType,
         guild_data: GuildData,
         guild_board: GuildBoard,
         memo: Option<String>,
@@ -49,20 +49,16 @@ impl Guilds {
         guild_data.assert_valid();
         guild_board.assert_valid();
 
-        // TODO: Storage cost is now the contracts task
-        // assert_min_one_yocto();
-        // let storage_usage = env::storage_usage();
-
         let guild = Guild {
             ceo_id: ceo_id.clone(),
-            type_id: type_id.clone(),
+            type_id: guild_type.clone(),
         };
         require!(
-            self.info_by_id.insert(&guild_key, &guild).is_none(),
+            self.info_by_id.insert(&guild_id, &guild).is_none(),
             "A guild with the provided id already exits"
         );
-        self.data_for_id.insert(&guild_key, &guild_data);
-        self.board_for_id.insert(&guild_key, &guild_board);
+        self.data_for_id.insert(&guild_id, &guild_data);
+        self.board_for_id.insert(&guild_id, &guild_board);
 
         // TODO Implement tracking per member? (board, owners)
         //self.add_to_member(&guild_id, &member_id);
@@ -72,13 +68,10 @@ impl Guilds {
             version: EVENT_ARC_METADATA_SPEC.to_string(),
             event: ArcEventVariant::ArcRegister(vec![ArcRegisterLog {
                 user_id: ceo_id.to_string(),
-                keys_list: vec![guild_key.to_string()],
+                keys_list: vec![guild_id.to_string()],
                 memo,
             }]),
         };
         env::log_str(&arc_register_log.to_string());
-
-        // TODO: Storage cost is now the contracts task
-        //refund_storage_deposit(env::storage_usage() - storage_usage);
     }
 }

@@ -7,22 +7,22 @@ const MAX_BASE_POINTS_TOTAL: u16 = 10000;
 )]
 #[serde(crate = "near_sdk::serde")]
 pub enum GuildType {
-    Base = 0,
+    Core = 0,
 }
 
 #[derive(Clone, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
 #[serde(crate = "near_sdk::serde")]
-pub struct GuildKey(String);
+pub struct GuildId(String);
 
-impl ToString for GuildKey {
+impl ToString for GuildId {
     fn to_string(&self) -> String {
         self.0.to_string()
     }
 }
 
-impl From<String> for GuildKey {
+impl From<String> for GuildId {
     fn from(item: String) -> Self {
-        GuildKey { 0: item }
+        GuildId { 0: item }
     }
 }
 
@@ -38,7 +38,7 @@ pub struct Guild {
 #[serde(crate = "near_sdk::serde")]
 pub struct JsonGuild {
     //guild id
-    pub id: GuildKey,
+    pub id: GuildId,
     //ceo of the guild
     pub ceo: AccountId,
     //data for the guild

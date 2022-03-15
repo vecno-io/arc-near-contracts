@@ -21,11 +21,11 @@ pub enum StorageKey {
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Tokens {
     //keeps track of the token info for a given token key
-    pub info_by_id: LookupMap<TokenKey, Token>,
+    pub info_by_id: LookupMap<TokenId, Token>,
     //keeps track of the tokens data for a given token key
-    pub data_for_id: UnorderedMap<TokenKey, TokenData>,
+    pub data_for_id: UnorderedMap<TokenId, TokenData>,
     //keeps track of all the tokens for a given account key
-    pub list_per_owner: LookupMap<AccountKey, UnorderedSet<TokenKey>>,
+    pub list_per_owner: LookupMap<AccountKey, UnorderedSet<TokenId>>,
 }
 
 impl Tokens {
@@ -40,18 +40,15 @@ impl Tokens {
 
     pub fn register(
         &mut self,
+        receiver_id: &AccountId,
+        token_id: &TokenId,
         type_id: TokenType,
-        token_id: TokenKey,
         token_data: TokenData,
         token_payout: TokenPayout,
-        receiver_id: AccountId,
         memo: Option<String>,
     ) {
         token_data.assert_valid();
         token_payout.assert_valid();
-        // TODO: Storage cost is now the contracts task
-        // assert_min_one_yocto();
-        // let storage_usage = env::storage_usage();
 
         let token = Token {
             type_id: type_id,
@@ -65,7 +62,7 @@ impl Tokens {
             "A token with the provided id already exits"
         );
 
-        self.add_to_owner(receiver_id.into(), &token_id);
+        self.add_to_owner(receiver_id.clone().into(), &token_id);
         self.data_for_id.insert(&token_id, &token_data);
 
         let nft_transfer_log: JsonEventLog = JsonEventLog {
@@ -78,14 +75,11 @@ impl Tokens {
             }]),
         };
         env::log_str(&nft_transfer_log.to_string());
-
-        // TODO: Storage cost is now the contracts task
-        //refund_storage_deposit(env::storage_usage() - storage_usage);
     }
 
     pub fn transfer(
         &mut self,
-        token_id: &TokenKey,
+        token_id: &TokenId,
         sender_id: &AccountId,
         receiver_id: &AccountId,
         approval_id: Option<u64>,
@@ -149,4 +143,4 @@ impl Tokens {
     }
 }
 
-crate::impl_item_is_owned!(Tokens, TokenKey, TokenListPerOwnerSet);
+crate::impl_item_is_owned!(Tokens, TokenId, TokenListPerOwnerSet);

@@ -17,17 +17,17 @@ pub enum TokenType {
 
 #[derive(Clone, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
 #[serde(crate = "near_sdk::serde")]
-pub struct TokenKey(String);
+pub struct TokenId(String);
 
-impl ToString for TokenKey {
+impl ToString for TokenId {
     fn to_string(&self) -> String {
         self.0.to_string()
     }
 }
 
-impl From<String> for TokenKey {
+impl From<String> for TokenId {
     fn from(item: String) -> Self {
-        TokenKey { 0: item }
+        TokenId { 0: item }
     }
 }
 
@@ -49,7 +49,7 @@ pub struct Token {
 #[serde(crate = "near_sdk::serde")]
 pub struct JsonToken {
     //token id
-    pub token_id: TokenKey,
+    pub token_id: TokenId,
     //owner of the token
     pub owner_id: AccountId,
     //metadata for the token
@@ -101,9 +101,10 @@ impl TokenData {
 }
 
 impl TokenPayout {
-    // TODO Max Configuration Options
+    // Note: Extend with configuration options
     // pub fn set_valid_cfg(cfg: TokenPayoutCfg)
     // pub fn load_valid_cfg() -> TokenPayoutCfg
+
     pub fn assert_valid(&self) {
         let mut total = 0;
         require!(

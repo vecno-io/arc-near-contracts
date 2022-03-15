@@ -20,9 +20,9 @@ pub enum StorageKey {
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Actors {
     //keeps track of the tokens data for a given token key
-    pub data_for_id: UnorderedMap<TokenKey, ActorData>,
+    pub data_for_id: UnorderedMap<TokenId, ActorData>,
     //keeps track of all the tokens for a given account key
-    pub list_per_owner: LookupMap<AccountKey, UnorderedSet<TokenKey>>,
+    pub list_per_owner: LookupMap<AccountKey, UnorderedSet<TokenId>>,
 }
 
 impl Actors {
@@ -36,23 +36,19 @@ impl Actors {
 
     pub fn register(
         &mut self,
-        token_id: TokenKey,
+        receiver_id: &AccountId,
+        token_id: &TokenId,
         actor_data: ActorData,
-        receiver_id: AccountId,
         memo: Option<String>,
     ) {
         actor_data.assert_valid();
 
-        // TODO: Storage cost is now the contracts task
-        // assert_min_one_yocto();
-        // let storage_usage = env::storage_usage();
-
         require!(
-            self.data_for_id.insert(&token_id, &actor_data).is_none(),
-            "A token with the provided id already exits"
+            self.data_for_id.insert(token_id, &actor_data).is_none(),
+            "An actor with the provided id already exits"
         );
 
-        self.add_to_owner(receiver_id.clone().into(), &token_id);
+        self.add_to_owner(receiver_id.clone().into(), token_id);
 
         let arc_register_log: ArcEventLog = ArcEventLog {
             module: EVENT_ARC_STANDARD_ACTOR.to_string(),
@@ -64,20 +60,12 @@ impl Actors {
             }]),
         };
         env::log_str(&arc_register_log.to_string());
-
-        // TODO: Storage cost is now the contracts task
-        //refund_storage_deposit(env::storage_usage() - storage_usage);
     }
 
-    pub fn transfer(
-        &mut self,
-        token_id: &TokenKey,
-        sender_id: &AccountId,
-        receiver_id: &AccountId,
-    ) {
+    pub fn transfer(&mut self, token_id: &TokenId, sender_id: &AccountId, receiver_id: &AccountId) {
         self.remove_from_owner(sender_id.clone().into(), &token_id);
         self.add_to_owner(receiver_id.clone().into(), &token_id);
     }
 }
 
-crate::impl_item_is_owned!(Actors, TokenKey, ActorListPerOwnerSet);
+crate::impl_item_is_owned!(Actors, TokenId, ActorListPerOwnerSet);

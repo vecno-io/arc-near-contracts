@@ -1,7 +1,7 @@
 use crate::*;
 
 pub trait ArcActor {
-    fn arc_actor(&self, token_id: TokenKey) -> Option<JsonActor>;
+    fn arc_actor(&self, token_id: TokenId) -> Option<JsonActor>;
 
     fn arc_actor_count(&self) -> U128;
 
@@ -25,7 +25,7 @@ macro_rules! impl_arc_actors {
 
         #[near_bindgen]
         impl ArcActor for $contract {
-            fn arc_actor(&self, token_id: TokenKey) -> Option<JsonActor> {
+            fn arc_actor(&self, token_id: TokenId) -> Option<JsonActor> {
                 if let Some(actordata) = self.$actors.data_for_id.get(&token_id) {
                     let tokendata = self.$tokens.data_for_id.get(&token_id).unwrap();
                     let token = self.$tokens.info_by_id.get(&token_id).unwrap();

@@ -1,12 +1,24 @@
 use crate::*;
 
 pub trait ArcGuild {
-    fn arc_guild(&self, guild_id: GuildKey) -> Option<JsonGuild>;
+    fn arc_guild(&self, guild_id: GuildId) -> Option<JsonGuild>;
 
     fn arc_guild_count(&self) -> U128;
 
     fn arc_guilds(&self, from_index: Option<U128>, limit: Option<u64>) -> Vec<JsonGuild>;
 }
+
+// TODO Implement guild members
+// pub trait ArcMembers {
+//     fn arc_guild_member_count(&self, guild_id: GuildId) -> U128;
+
+//     fn arc_guild_members(
+//         &self,
+//         guild_id: GuildId,
+//         from_index: Option<U128>,
+//         limit: Option<u64>,
+//     ) -> Vec<JsonGuild>;
+// }
 
 #[macro_export]
 macro_rules! impl_arc_guilds {
@@ -16,12 +28,12 @@ macro_rules! impl_arc_guilds {
 
         #[near_bindgen]
         impl ArcGuild for $contract {
-            fn arc_guild(&self, guild_key: GuildKey) -> Option<JsonGuild> {
-                if let Some(guild) = self.$guilds.info_by_id.get(&guild_key) {
-                    let data = self.$guilds.data_for_id.get(&guild_key).unwrap();
-                    let board = self.$guilds.board_for_id.get(&guild_key).unwrap();
+            fn arc_guild(&self, guild_id: GuildId) -> Option<JsonGuild> {
+                if let Some(guild) = self.$guilds.info_by_id.get(&guild_id) {
+                    let data = self.$guilds.data_for_id.get(&guild_id).unwrap();
+                    let board = self.$guilds.board_for_id.get(&guild_id).unwrap();
                     return Some(JsonGuild {
-                        id: guild_key,
+                        id: guild_id,
                         ceo: guild.ceo_id,
                         data: data,
                         board: board,
@@ -42,7 +54,7 @@ macro_rules! impl_arc_guilds {
                     .keys()
                     .skip(start as usize)
                     .take(limit.unwrap_or(50) as usize)
-                    .map(|guild_key| self.arc_guild(guild_key.clone()).unwrap())
+                    .map(|guild_id| self.arc_guild(guild_id.clone()).unwrap())
                     .collect();
             }
         }
