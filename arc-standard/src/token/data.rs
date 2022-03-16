@@ -12,7 +12,6 @@ pub enum TokenType {
     None = 0,
     Actor,
     Asset,
-    Guild,
 }
 
 #[derive(Clone, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]

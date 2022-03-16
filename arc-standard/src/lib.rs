@@ -29,7 +29,7 @@ pub type Admin = LazyOption<GuildId>;
 // TODO AccountKey Needs to be fixed size,
 // the annoying part: no support for [u8, 64].
 
-#[derive(Clone, BorshSerialize)]
+#[derive(Clone, BorshSerialize, BorshDeserialize)]
 pub struct AccountKey(String);
 
 impl ToString for AccountKey {

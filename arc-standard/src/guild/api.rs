@@ -8,17 +8,18 @@ pub trait ArcGuild {
     fn arc_guilds(&self, from_index: Option<U128>, limit: Option<u64>) -> Vec<JsonGuild>;
 }
 
-// TODO Implement guild members
-// pub trait ArcMembers {
-//     fn arc_guild_member_count(&self, guild_id: GuildId) -> U128;
+pub trait ArcMembers {
+    fn arc_guild_membership(&self, token_id: TokenId) -> Option<JsonMember>;
 
-//     fn arc_guild_members(
-//         &self,
-//         guild_id: GuildId,
-//         from_index: Option<U128>,
-//         limit: Option<u64>,
-//     ) -> Vec<JsonGuild>;
-// }
+    fn arc_guild_members_count(&self, guild_id: GuildId) -> U128;
+
+    fn arc_guild_members(
+        &self,
+        guild_id: GuildId,
+        from_index: Option<U128>,
+        limit: Option<u64>,
+    ) -> Vec<AccountId>;
+}
 
 #[macro_export]
 macro_rules! impl_arc_guilds {
@@ -56,6 +57,51 @@ macro_rules! impl_arc_guilds {
                     .take(limit.unwrap_or(50) as usize)
                     .map(|guild_id| self.arc_guild(guild_id.clone()).unwrap())
                     .collect();
+            }
+        }
+
+        #[near_bindgen]
+        impl ArcMembers for $contract {
+            fn arc_guild_membership(&self, token_id: TokenId) -> Option<JsonMember> {
+                if let Some(guild_member) = self.$guilds.member_by_id.get(&token_id) {
+                    return Some(JsonMember {
+                        guild_id: guild_member.guild_id,
+                        owner_id: guild_member.owner_id,
+                    });
+                }
+                return None;
+            }
+
+            fn arc_guild_members_count(&self, guild_id: GuildId) -> U128 {
+                if let Some(member_list) = self.$guilds.list_per_guild.get(&guild_id) {
+                    return U128(member_list.len() as u128);
+                }
+                return U128::from(0);
+            }
+
+            fn arc_guild_members(
+                &self,
+                guild_id: GuildId,
+                from_index: Option<U128>,
+                limit: Option<u64>,
+            ) -> Vec<AccountId> {
+                if let Some(member_list) = self.$guilds.list_per_guild.get(&guild_id) {
+                    let start = u128::from(from_index.unwrap_or(U128(0)));
+                    return member_list
+                        .iter()
+                        .skip(start as usize)
+                        .take(limit.unwrap_or(50) as usize)
+                        .map(|token_id| {
+                            self.arc_guild_membership(token_id.clone())
+                                .unwrap()
+                                .owner_id
+                        })
+                        .filter(|owner_id| owner_id.is_some())
+                        .map(|owner_id| owner_id.unwrap())
+                        .collect();
+                }
+                // TODO Implement
+                return vec![];
             }
         }
     };

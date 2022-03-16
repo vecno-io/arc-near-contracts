@@ -34,6 +34,14 @@ pub struct Guild {
     pub type_id: GuildType,
 }
 
+#[derive(BorshDeserialize, BorshSerialize)]
+pub struct GuildMember {
+    //id of the memberships guild
+    pub guild_id: GuildId,
+    //id of the memberships owner
+    pub owner_id: Option<AccountId>,
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct JsonGuild {
@@ -45,6 +53,13 @@ pub struct JsonGuild {
     pub data: GuildData,
     //board of the members
     pub board: GuildBoard,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct JsonMember {
+    pub guild_id: GuildId,
+    pub owner_id: Option<AccountId>,
 }
 
 #[derive(Serialize, Deserialize, BorshSerialize, BorshDeserialize)]
