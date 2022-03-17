@@ -8,20 +8,20 @@ use near_sdk::{env, require, AccountId, Balance, CryptoHash, Gas, Promise, Promi
 
 pub const ARC_STANDARD_SPEC: &str = "ARC-1.0.0";
 
-pub mod intern;
+pub mod meta;
+pub mod utils;
 
 pub mod actor;
 pub mod event;
 pub mod guild;
-pub mod meta;
 pub mod token;
 
-pub use crate::intern::*;
+pub use crate::meta::*;
+pub use crate::utils::*;
 
 pub use crate::actor::*;
 pub use crate::event::*;
 pub use crate::guild::*;
-pub use crate::meta::*;
 pub use crate::token::*;
 
 pub type Admin = LazyOption<GuildId>;
@@ -66,6 +66,7 @@ pub trait ArcApp {
         guild_type: GuildType,
         guild_data: GuildData,
         guild_board: GuildBoard,
+        guild_payout: Option<AccountId>,
     );
 
     fn arc_mint_actor(
@@ -75,15 +76,10 @@ pub trait ArcApp {
         actor_data: ActorData,
         token_data: TokenData,
         token_payout: TokenPayout,
+        guild_id: Option<GuildId>,
     );
 
-    // fn arc_mint_guild_member(
-    //     &mut self,
-    //     owner_id: AccountId,
-    //     token_id: TokenId,
-    //     guild_key: GuildId,
-    //     token_data: TokenData,
-    // );
+    fn arc_add_guild_member(&mut self, guild_key: GuildId, member_id: AccountId);
 }
 
 // #[near_bindgen]

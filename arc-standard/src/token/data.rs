@@ -36,6 +36,8 @@ pub struct Token {
     pub type_id: TokenType,
     //owner id for the token
     pub owner_id: AccountId,
+    //guild id for the token
+    pub guild_id: Option<GuildId>,
     //royalties for this token
     pub payout: TokenPayout,
     //approval index tracker
@@ -80,7 +82,10 @@ pub struct TokenData {
 
 #[derive(Clone, Default, Serialize, Deserialize, BorshSerialize, BorshDeserialize)]
 #[serde(crate = "near_sdk::serde")]
-pub struct TokenPayout(HashMap<AccountId, u16>);
+pub struct TokenPayout {
+    pub guild: u16,
+    pub accounts: HashMap<AccountId, u16>,
+}
 
 impl TokenData {
     pub fn assert_valid(&self) {
@@ -105,16 +110,17 @@ impl TokenPayout {
     // pub fn load_valid_cfg() -> TokenPayoutCfg
 
     pub fn assert_valid(&self) {
-        let mut total = 0;
+        let mut total = self.guild;
         require!(
-            self.0.len() < 5,
+            self.accounts.len() < 5,
             format!(
                 "Cannot add more than {} payouts per token, got {}",
                 4,
-                self.0.len()
+                self.accounts.len()
             )
         );
-        for (_account, amount) in &self.0 {
+        // TODO Verify that all acounts are unique
+        for (_account, amount) in &self.accounts {
             total += amount;
         }
         require!(
@@ -126,24 +132,50 @@ impl TokenPayout {
         );
     }
 
-    pub fn compute(&self, owner_id: AccountId, amount: u128, max_payouts: u32) -> JsonPayout {
-        assert!(
-            self.0.len() as u32 <= max_payouts,
-            "The request cannot payout all royalties"
-        );
+    pub fn compute(
+        &self,
+        amount: u128,
+        max_len: u32,
+        owner_id: AccountId,
+        guild_id: Option<AccountId>,
+    ) -> JsonPayout {
+        let mut max_payouts = max_len;
         let mut total_payout = 0;
         let mut payout_object = JsonPayout {
             payout: HashMap::new(),
         };
-        for (k, v) in self.0.iter() {
-            let key = k.clone();
-            if key != owner_id {
+
+        if let Some(account) = guild_id.clone() {
+            max_payouts -= 1;
+            if account != owner_id {
+                total_payout += self.guild;
                 payout_object
                     .payout
-                    .insert(key, royalty_to_payout(*v, amount));
-                total_payout += *v;
+                    .insert(account, royalty_to_payout(self.guild, amount));
             }
         }
+        assert!(
+            self.accounts.len() as u32 <= max_payouts,
+            "The request cannot payout all royalties"
+        );
+
+        for (key, val) in self.accounts.iter() {
+            if key != &owner_id {
+                total_payout += *val;
+                let mut royalty = *val;
+                if Some(key.clone()) == guild_id {
+                    royalty += self.guild;
+                }
+                payout_object
+                    .payout
+                    .insert(key.clone(), royalty_to_payout(royalty, amount));
+            }
+        }
+        assert!(
+            total_payout <= MAX_BASE_POINTS_TOTAL,
+            "The total payout percentage is to large"
+        );
+
         payout_object.payout.insert(
             owner_id.clone(),
             royalty_to_payout(MAX_BASE_POINTS_TOTAL - total_payout, amount),

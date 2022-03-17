@@ -335,9 +335,20 @@ macro_rules! impl_nft_tokens {
                     .info_by_id
                     .get(&token_id.into())
                     .expect("Token not found");
-                return token
-                    .payout
-                    .compute(token.owner_id, balance.into(), max_len_payout);
+
+                let mut guild_account: Option<AccountId> = None;
+                if let Some(guild_id) = token.guild_id {
+                    if let Some(guild_info) = self.$guilds.info_by_id.get(&guild_id) {
+                        guild_account = guild_info.payout_id;
+                    }
+                }
+
+                return token.payout.compute(
+                    balance.into(),
+                    max_len_payout,
+                    token.owner_id,
+                    guild_account,
+                );
             }
 
             fn nft_transfer_payout(
@@ -360,9 +371,20 @@ macro_rules! impl_nft_tokens {
                 }
 
                 refund_approved_accounts(token.owner_id.clone(), &token.approved_accounts);
-                return token
-                    .payout
-                    .compute(token.owner_id, balance.into(), max_len_payout);
+
+                let mut guild_account: Option<AccountId> = None;
+                if let Some(guild_id) = token.guild_id {
+                    if let Some(guild_info) = self.$guilds.info_by_id.get(&guild_id) {
+                        guild_account = guild_info.payout_id;
+                    }
+                }
+
+                return token.payout.compute(
+                    balance.into(),
+                    max_len_payout,
+                    token.owner_id,
+                    guild_account,
+                );
             }
         }
 

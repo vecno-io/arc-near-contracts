@@ -58,6 +58,7 @@ impl Guilds {
         guild_type: GuildType,
         guild_data: GuildData,
         guild_board: GuildBoard,
+        guild_payout: Option<AccountId>,
         memo: Option<String>,
     ) {
         guild_data.assert_valid();
@@ -66,6 +67,7 @@ impl Guilds {
         let guild = Guild {
             ceo_id: ceo_id.clone(),
             type_id: guild_type.clone(),
+            payout_id: guild_payout.clone(),
         };
         require!(
             self.info_by_id.insert(&guild_id, &guild).is_none(),
@@ -159,6 +161,7 @@ impl Guilds {
             .get(guild_id)
             .expect("guild id not found");
 
+        // Note: This generator assumes no membership tokens are ever removed from a guild!
         let token_id: TokenId = format!("{} #{}", guild_id.to_string(), guild_set.len()).into();
 
         require!(

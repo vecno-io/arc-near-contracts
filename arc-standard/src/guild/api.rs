@@ -100,7 +100,6 @@ macro_rules! impl_arc_guilds {
                         .map(|owner_id| owner_id.unwrap())
                         .collect();
                 }
-                // TODO Implement
                 return vec![];
             }
         }

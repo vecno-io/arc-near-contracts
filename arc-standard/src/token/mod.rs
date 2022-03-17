@@ -45,6 +45,7 @@ impl Tokens {
         type_id: TokenType,
         token_data: TokenData,
         token_payout: TokenPayout,
+        guild_id: Option<GuildId>,
         memo: Option<String>,
     ) {
         token_data.assert_valid();
@@ -53,6 +54,7 @@ impl Tokens {
         let token = Token {
             type_id: type_id,
             owner_id: receiver_id.clone(),
+            guild_id: guild_id,
             payout: token_payout,
             approval_index: 0,
             approved_accounts: Default::default(),
@@ -113,6 +115,7 @@ impl Tokens {
         let new_token = Token {
             type_id: token.type_id,
             owner_id: receiver_id.clone(),
+            guild_id: token.guild_id.clone(),
             payout: token.payout.clone(),
             approval_index: token.approval_index,
             approved_accounts: Default::default(),

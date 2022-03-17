@@ -32,6 +32,8 @@ pub struct Guild {
     pub ceo_id: AccountId,
     //type id for the guild
     pub type_id: GuildType,
+    //payout id for the guild
+    pub payout_id: Option<AccountId>,
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]

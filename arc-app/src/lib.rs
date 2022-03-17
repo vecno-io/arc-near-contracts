@@ -34,6 +34,7 @@ impl App {
         guild_id: GuildId,
         guild_data: GuildData,
         guild_board: GuildBoard,
+        guild_payout: Option<AccountId>,
         app_metadata: Metadata,
     ) -> Self {
         assert_min_one_yocto();
@@ -60,6 +61,7 @@ impl App {
             GuildType::Core,
             guild_data,
             guild_board,
+            guild_payout,
             None,
         );
         this
@@ -92,6 +94,7 @@ impl App {
                 share: 5000,
                 members,
             },
+            None,
             Metadata {
                 spec: ARC_STANDARD_SPEC.to_string(),
                 name: "The Core App".to_string(),
@@ -114,12 +117,13 @@ impl ArcApp for App {
         guild_type: GuildType,
         guild_data: GuildData,
         guild_board: GuildBoard,
+        guild_payout: Option<AccountId>,
     ) {
         assert_min_one_yocto();
         let storage_usage = env::storage_usage();
 
-        // ToDo Implement checks who can call this?
-        // Does the admin guild vot on new guilds?
+        // TODO Implement checks who can call this?
+        // Make the admin guild vote on creation?
         // For demo/Testing it is open to all.
 
         self.guild.register(
@@ -128,6 +132,7 @@ impl ArcApp for App {
             guild_type,
             guild_data,
             guild_board,
+            guild_payout,
             None,
         );
 
@@ -141,6 +146,7 @@ impl ArcApp for App {
         actor_data: ActorData,
         token_data: TokenData,
         token_payout: TokenPayout,
+        guild_id: Option<GuildId>,
     ) {
         assert_min_one_yocto();
         let storage_usage = env::storage_usage();
@@ -151,6 +157,7 @@ impl ArcApp for App {
             TokenType::Actor,
             token_data,
             token_payout,
+            guild_id,
             None,
         );
         self.actor.register(&owner_id, &token_id, actor_data, None);
@@ -158,13 +165,14 @@ impl ArcApp for App {
         refund_storage_deposit(env::storage_usage() - storage_usage);
     }
 
-    // fn arc_mint_guild_member(
-    //     &mut self,
-    //     _owner_id: AccountId,
-    //     _token_id: TokenId,
-    //     _guild_key: GuildId,
-    //     _token_data: TokenData,
-    // ) {
-    //     // ToDo Implement
-    // }
+    fn arc_add_guild_member(&mut self, guild_key: GuildId, member_id: AccountId) {
+        assert_min_one_yocto();
+        let storage_usage = env::storage_usage();
+
+        // TODO: FixMe: Temp rush job to meet encode club dealines
+        // Note: Base setup, no verification or reuse of old tokens implemented
+        self.guild.create_member_token(&guild_key, Some(member_id));
+
+        refund_storage_deposit(env::storage_usage() - storage_usage);
+    }
 }
