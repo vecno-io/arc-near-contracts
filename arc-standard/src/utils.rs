@@ -72,6 +72,7 @@ where
 }
 
 //refund a map of approved account IDs and send the funds to the passed in account ID
+#[inline(always)]
 pub fn refund_approved_accounts(
     account_id: AccountId,
     approved_accounts: &HashMap<AccountId, u64>,
@@ -80,7 +81,10 @@ pub fn refund_approved_accounts(
     refund_approved_account_ids_iter(account_id, approved_accounts.keys())
 }
 
-//convert the royalty percentage and amount to pay into a payout (U128)
+/// Converts the input into an amount to pay out.
+///
+/// Note: It does not validate, the caller needs to ensure values are valid.
+#[inline(always)]
 pub fn royalty_to_payout(royalty_percentage: u16, amount_to_pay: Balance) -> U128 {
     U128(royalty_percentage as u128 * amount_to_pay / MAX_BASE_POINTS_TOTAL as u128)
 }
@@ -117,4 +121,31 @@ macro_rules! impl_item_is_owned {
             }
         }
     };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    macro_rules! test_macro_royalty_to_payout {
+        ($share: expr, $total: expr, $expect: expr) => {
+            let amount = royalty_to_payout($share, $total);
+            assert_eq!(amount, $expect.into());
+        };
+    }
+
+    #[test]
+    fn test_royalty_to_payout() {
+        test_macro_royalty_to_payout!(0, 100, 0);
+
+        test_macro_royalty_to_payout!(5, 1000, 0);
+        test_macro_royalty_to_payout!(25, 1000, 2);
+        test_macro_royalty_to_payout!(125, 1000, 12);
+
+        test_macro_royalty_to_payout!(125, 100, 1);
+        test_macro_royalty_to_payout!(125, 1000, 12);
+        test_macro_royalty_to_payout!(125, 10000, 125);
+
+        test_macro_royalty_to_payout!(10000, 100, 100);
+    }
 }

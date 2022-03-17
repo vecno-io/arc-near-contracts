@@ -89,6 +89,14 @@ pub struct TokenPayout {
 
 impl TokenData {
     pub fn assert_valid(&self) {
+        require!(
+            self.title.is_some() && self.title.as_ref().unwrap().len() <= 28,
+            "Max title length = 28"
+        );
+        require!(
+            self.description.is_some() && self.description.as_ref().unwrap().len() <= 128,
+            "Max description length = 128"
+        );
         require!(self.media.is_some() == self.media_hash.is_some());
         if let Some(media_hash) = &self.media_hash {
             require!(media_hash.0.len() == 32, "Media hash has to be 32 bytes");
@@ -109,25 +117,27 @@ impl TokenPayout {
     // pub fn set_valid_cfg(cfg: TokenPayoutCfg)
     // pub fn load_valid_cfg() -> TokenPayoutCfg
 
+    pub fn new() -> Self {
+        return Self {
+            guild: 0,
+            accounts: HashMap::new(),
+        };
+    }
+
     pub fn assert_valid(&self) {
         let mut total = self.guild;
         require!(
             self.accounts.len() < 5,
-            format!(
-                "Cannot add more than {} payouts per token, got {}",
-                4,
-                self.accounts.len()
-            )
+            "Cannot add more than 4 payouts per token"
         );
-        // TODO Verify that all acounts are unique
         for (_account, amount) in &self.accounts {
             total += amount;
         }
         require!(
             total <= MAX_BASE_POINTS_TOTAL,
             format!(
-                "The total for payouts can not be larger than {}, got {}",
-                total, MAX_BASE_POINTS_TOTAL
+                "The total for payouts can not be more than {}, got {}",
+                MAX_BASE_POINTS_TOTAL, total
             )
         );
     }

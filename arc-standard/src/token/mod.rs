@@ -147,3 +147,8 @@ impl Tokens {
 }
 
 crate::impl_item_is_owned!(Tokens, TokenId, TokenListPerOwnerSet);
+
+#[cfg(test)]
+mod tests {
+    mod data;
+}
