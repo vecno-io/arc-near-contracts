@@ -43,7 +43,10 @@ impl Metadata {
             "Reference and reference hash must be present"
         );
         if let Some(reference_hash) = &self.reference_hash {
-            require!(reference_hash.0.len() == 32, "Hash has to be 32 bytes");
+            require!(
+                reference_hash.0.len() == 64,
+                "Reference hash has to be hex encoded string (64 bytes)"
+            );
         }
     }
 }
@@ -55,7 +58,10 @@ impl JsonMetadata {
             "Reference and reference hash must be present"
         );
         if let Some(reference_hash) = &self.reference_hash {
-            require!(reference_hash.0.len() == 32, "Hash has to be 32 bytes");
+            require!(
+                reference_hash.0.len() == 64,
+                "Reference hash has to be hex encoded string (64 bytes)"
+            );
         }
     }
 }

@@ -71,11 +71,11 @@ pub struct GuildData {
     pub tag: String,
     pub name: String,
     pub icon: Option<String>,
-    pub icon_hash: Option<Base64VecU8>,
+    pub icon_hash: Option<String>,
     pub media: Option<String>,
-    pub media_hash: Option<Base64VecU8>,
+    pub media_hash: Option<String>,
     pub reference: Option<String>,
-    pub reference_hash: Option<Base64VecU8>,
+    pub reference_hash: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, BorshSerialize, BorshDeserialize)]
@@ -90,17 +90,23 @@ impl GuildData {
     pub fn assert_valid(&self) {
         require!(self.icon.is_some() == self.icon_hash.is_some());
         if let Some(icon_hash) = &self.icon_hash {
-            require!(icon_hash.0.len() == 32, "Icon hash must be 32 bytes");
+            require!(
+                icon_hash.len() == 64,
+                "Icon hash must be hex encoded string (64 bytes)"
+            );
         }
         require!(self.media.is_some() == self.media_hash.is_some());
         if let Some(media_hash) = &self.media_hash {
-            require!(media_hash.0.len() == 32, "Media hash must be 32 bytes");
+            require!(
+                media_hash.len() == 64,
+                "Media hash must be hex encoded string (64 bytes)"
+            );
         }
         require!(self.reference.is_some() == self.reference_hash.is_some());
         if let Some(reference_hash) = &self.reference_hash {
             require!(
-                reference_hash.0.len() == 32,
-                "Reference hash must be 32 bytes"
+                reference_hash.len() == 64,
+                "Reference hash must be hex encoded string (64 bytes)"
             );
         }
     }

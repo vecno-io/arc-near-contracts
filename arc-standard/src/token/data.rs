@@ -75,9 +75,9 @@ pub struct TokenData {
     pub description: Option<String>,
     pub extra: Option<String>,
     pub media: Option<String>,
-    pub media_hash: Option<Base64VecU8>,
+    pub media_hash: Option<String>,
     pub reference: Option<String>,
-    pub reference_hash: Option<Base64VecU8>,
+    pub reference_hash: Option<String>,
 }
 
 #[derive(Clone, Default, Serialize, Deserialize, BorshSerialize, BorshDeserialize)]
@@ -99,14 +99,17 @@ impl TokenData {
         );
         require!(self.media.is_some() == self.media_hash.is_some());
         if let Some(media_hash) = &self.media_hash {
-            require!(media_hash.0.len() == 32, "Media hash has to be 32 bytes");
+            require!(
+                media_hash.len() == 64,
+                "Media hash has to be hex encoded string (64 bytes)"
+            );
         }
 
         require!(self.reference.is_some() == self.reference_hash.is_some());
         if let Some(reference_hash) = &self.reference_hash {
             require!(
-                reference_hash.0.len() == 32,
-                "Reference hash has to be 32 bytes"
+                reference_hash.len() == 64,
+                "Reference hash has to be hex encoded string (64 bytes)"
             );
         }
     }
