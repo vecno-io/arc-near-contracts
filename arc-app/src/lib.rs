@@ -108,6 +108,7 @@ impl App {
 
 #[near_bindgen]
 impl ArcApp for App {
+    #[payable]
     fn arc_create_guild(
         &mut self,
         ceo_id: AccountId,
@@ -137,6 +138,7 @@ impl ArcApp for App {
         refund_storage_deposit(env::storage_usage() - storage_usage);
     }
 
+    #[payable]
     fn arc_mint_actor(
         &mut self,
         owner_id: AccountId,
@@ -163,6 +165,7 @@ impl ArcApp for App {
         refund_storage_deposit(env::storage_usage() - storage_usage);
     }
 
+    #[payable]
     fn arc_add_guild_member(&mut self, guild_key: GuildId, member_id: AccountId) {
         assert_min_one_yocto();
         let storage_usage = env::storage_usage();

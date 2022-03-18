@@ -231,6 +231,7 @@ macro_rules! impl_nft_tokens {
                 return false;
             }
 
+            #[payable]
             fn nft_approve(
                 &mut self,
                 token_id: TokenId,
@@ -280,6 +281,7 @@ macro_rules! impl_nft_tokens {
                 }
             }
 
+            #[payable]
             fn nft_revoke(&mut self, token_id: TokenId, account_id: AccountId) {
                 assert_one_yocto();
 
@@ -300,6 +302,7 @@ macro_rules! impl_nft_tokens {
                 }
             }
 
+            #[payable]
             fn nft_revoke_all(&mut self, token_id: TokenId) {
                 assert_one_yocto();
 
@@ -351,6 +354,7 @@ macro_rules! impl_nft_tokens {
                 );
             }
 
+            #[payable]
             fn nft_transfer_payout(
                 &mut self,
                 receiver_id: AccountId,

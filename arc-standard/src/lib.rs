@@ -82,68 +82,6 @@ pub trait ArcApp {
     fn arc_add_guild_member(&mut self, guild_key: GuildId, member_id: AccountId);
 }
 
-// #[near_bindgen]
-// #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
-// pub struct Contract {
-//     admin: Admin,
-//     actors: Actors,
-//     guilds: Guilds,
-//     tokens: Tokens,
-// }
-
-// #[near_bindgen]
-// impl Contract {
-//     #[init]
-//     pub fn new(
-//         ceo_id: AccountId,
-//         guild_key: GuildKey,
-//         guild_data: GuildData,
-//         guild_board: GuildBoard,
-//     ) -> Self {
-//         require!(!env::state_exists(), "Already initialized");
-//         guild_data.assert_valid();
-//         guild_board.assert_valid();
-
-//         let mut this = Self {
-//             admin: Admin::new(
-//                 StorageKey::ManagerId.try_to_vec().unwrap(),
-//                 Some(&guild_key),
-//             ),
-//             actors: Actors::new(),
-//             guilds: Guilds::new(),
-//             tokens: Tokens::new(),
-//         };
-//         this.arc_register_guild(ceo_id, guild_key, guild_data, guild_board, None);
-//         this
-//     }
-
-//     #[init]
-//     pub fn new_default_guild(ceo_id: AccountId, board: AccountId) -> Self {
-//         let mut members = HashMap::new();
-//         members.insert(board, 10000);
-//         Self::new(
-//             ceo_id,
-//             GuildKey::from("admin:guild".to_string()),
-//             GuildData {
-//                 spec: NFT_METADATA_SPEC.to_string(),
-//                 tag: "Arc-Core".to_string(),
-//                 name: "The Core Guild".to_string(),
-//                 icon: None,
-//                 icon_hash: None,
-//                 media: None,
-//                 media_hash: None,
-//                 reference: None,
-//                 reference_hash: None,
-//             },
-//             GuildBoard {
-//                 size: 1,
-//                 share: 5000,
-//                 members,
-//             },
-//         )
-//     }
-// }
-
 #[macro_export]
 macro_rules! use_imports {
     () => {
