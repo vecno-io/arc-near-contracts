@@ -162,12 +162,17 @@ impl Guilds {
             .expect("guild id not found");
 
         // Note: This generator assumes no membership tokens are ever removed from a guild!
-        let token_id: TokenId = format!("{} #{}", guild_id.to_string(), guild_set.len()).into();
+        let token_id: TokenId = format!("{}:{}", guild_id.to_string(), guild_set.len()).into();
 
         require!(
             guild_set.insert(&token_id),
-            "The members token id is already used"
+            format!(
+                "The members token id is already used, on {}",
+                token_id.to_string()
+            )
         );
+        self.list_per_guild.insert(guild_id, &guild_set);
+
         self.member_by_id.insert(
             &token_id,
             &GuildMember {
@@ -192,7 +197,10 @@ impl Guilds {
         });
         require!(
             owner_map.insert(guild_id, &token_id).is_none(),
-            "The owner already is a member of the guild"
+            format!(
+                "The account already is a member of the guild, on {}",
+                owner_key.to_string()
+            )
         );
         self.list_per_owner.insert(&owner_key, &owner_map);
 

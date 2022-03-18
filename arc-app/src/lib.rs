@@ -37,7 +37,6 @@ impl App {
         guild_payout: Option<AccountId>,
         app_metadata: Metadata,
     ) -> Self {
-        assert_min_one_yocto();
         require!(!env::state_exists(), "Already initialized");
 
         guild_data.assert_valid();
@@ -69,7 +68,6 @@ impl App {
 
     #[init]
     pub fn new_default(ceo_id: AccountId, board: AccountId) -> Self {
-        assert_min_one_yocto();
         require!(!env::state_exists(), "Already initialized");
 
         let mut members = HashMap::new();
