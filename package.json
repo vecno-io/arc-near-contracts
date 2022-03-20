@@ -5,6 +5,7 @@
     "author": "Koen Van Rulo",
     "license": "MIT",
     "scripts": {
-        "build": "cd nft-contract && ./build.sh && cd .. && ls && cd market-contract && ./build.sh && cd .."
+        "test": "./run-test.sh",
+        "build": "./run-build.sh"
     }
 }
