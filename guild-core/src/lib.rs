@@ -6,15 +6,15 @@ use guild_standard::Guilds;
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct Contract {
-	guilds: Guilds,
+    guilds: Guilds,
 }
 
 #[near_bindgen]
 impl Contract {
-	#[init]
-	pub fn new() -> Self {
-		Self {
-			guilds: Guilds::new()
-		}
-	}
+    #[init]
+    pub fn new() -> Self {
+        Self {
+            guilds: Guilds::new(),
+        }
+    }
 }
