@@ -2,49 +2,6 @@ use crate::*;
 
 pub const MAX_BASIS_POINTS: u16 = 10000;
 
-// ==== Guild Info ====
-
-#[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
-#[serde(crate = "near_sdk::serde")]
-pub struct GuildInfo {
-    pub ceo_id: AccountId,
-    pub ceo_share: u16,
-    pub board_size: u64,
-    pub board_share: u16,
-    pub members_size: u64,
-    pub members_share: u16,
-}
-
-impl GuildInfo {
-    pub fn assert_valid(&self) {
-        require!(
-            self.members_size > 0,
-            "Members size must be atleast one or more"
-        );
-        require!(
-            self.board_size <= self.members_size,
-            "Board size can not be larger than members size"
-        );
-        require!(
-            self.ceo_share <= MAX_BASIS_POINTS,
-            "CEO share can not be more than 100_00 basis points"
-        );
-        require!(
-            self.board_share <= MAX_BASIS_POINTS,
-            "Board share can not be more than 100_00 basis points"
-        );
-        require!(
-            self.members_share <= MAX_BASIS_POINTS,
-            "Members share can not be more than 100_00 basis points"
-        );
-        require!(
-            // Note: This check depends on the Rust compilers setting: `overflow-checks = true`
-            (self.ceo_share + self.board_share + self.members_share) <= MAX_BASIS_POINTS,
-            "Total shares can not be more than 100_00 basis points"
-        );
-    }
-}
-
 // ==== Guild ID ====
 
 #[derive(Clone, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
@@ -110,6 +67,49 @@ impl std::error::Error for GuildIdParseError {}
 #[inline(always)]
 fn is_valid_guild_id(id: &[u8]) -> bool {
     return id.len() > 0 && id.len() <= 32;
+}
+
+// ==== Guild Info ====
+
+#[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct GuildInfo {
+    pub ceo_id: AccountId,
+    pub ceo_share: u16,
+    pub board_size: u64,
+    pub board_share: u16,
+    pub members_size: u64,
+    pub members_share: u16,
+}
+
+impl GuildInfo {
+    pub fn assert_valid(&self) {
+        require!(
+            self.members_size > 0,
+            "Members size must be atleast one or more"
+        );
+        require!(
+            self.board_size <= self.members_size,
+            "Board size can not be larger than members size"
+        );
+        require!(
+            self.ceo_share <= MAX_BASIS_POINTS,
+            "CEO share can not be more than 100_00 basis points"
+        );
+        require!(
+            self.board_share <= MAX_BASIS_POINTS,
+            "Board share can not be more than 100_00 basis points"
+        );
+        require!(
+            self.members_share <= MAX_BASIS_POINTS,
+            "Members share can not be more than 100_00 basis points"
+        );
+        require!(
+            // Note: This check depends on the Rust compilers setting: `overflow-checks = true`
+            (self.ceo_share + self.board_share + self.members_share) <= MAX_BASIS_POINTS,
+            "Total shares can not be more than 100_00 basis points"
+        );
+    }
 }
 
 // ==== Guild Board ====

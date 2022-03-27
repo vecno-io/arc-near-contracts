@@ -18,6 +18,78 @@ macro_rules! account_vecno {
     };
 }
 
+// ==== Guild ID ====
+
+const ID_MIN: &str = "1";
+const ID_MAX: &str = "123456789:123456789:123456789:12";
+
+const ID_ERR_NONE: &str = "";
+const ID_ERR_LONG: &str = "123456789:123456789:123456789:123";
+
+#[test]
+fn guild_id_as_bytes() {
+    let id = ID_MIN.parse::<GuildId>().unwrap();
+    assert_eq!(id.as_bytes(), ID_MIN.as_bytes());
+    let id = ID_MAX.parse::<GuildId>().unwrap();
+    assert_eq!(id.as_bytes(), ID_MAX.as_bytes());
+}
+
+#[test]
+fn guild_id_as_str() {
+    let id = ID_MIN.parse::<GuildId>().unwrap();
+    assert_eq!(id.as_str(), ID_MIN);
+    let id = ID_MAX.parse::<GuildId>().unwrap();
+    assert_eq!(id.as_str(), ID_MAX);
+}
+
+#[test]
+fn guild_id_as_ref() {
+    let id = ID_MIN.parse::<GuildId>().unwrap();
+    assert_eq!(id.as_ref(), &ID_MIN.to_string());
+    let id = ID_MAX.parse::<GuildId>().unwrap();
+    assert_eq!(id.as_ref(), &ID_MAX.to_string());
+}
+
+#[test]
+fn guild_id_from_str() {
+    let id: GuildId = ID_MIN.to_string().into();
+    assert_eq!(id.as_bytes(), ID_MIN.as_bytes());
+    let id: GuildId = ID_MAX.to_string().into();
+    assert_eq!(id.as_bytes(), ID_MAX.as_bytes());
+}
+
+#[test]
+#[should_panic(expected = "The string is not a valid guild id")]
+fn guild_id_from_str_panic_none() {
+    let _id: GuildId = ID_ERR_NONE.to_string().into();
+}
+
+#[test]
+#[should_panic(expected = "The string is not a valid guild id")]
+fn guild_id_from_str_panic_long() {
+    let _id: GuildId = ID_ERR_LONG.to_string().into();
+}
+
+#[test]
+#[should_panic(expected = "From<String>: the guild id is invalid")]
+fn guild_id_from_str_error_none() {
+    let res = ID_ERR_NONE.parse::<GuildId>();
+    let _id = match res {
+        Ok(id) => id,
+        Err(error) => panic!("From<String>: {}", error.to_string()),
+    };
+}
+
+#[test]
+#[should_panic(expected = "From<String>: the guild id is invalid")]
+fn guild_id_from_str_error_long() {
+    let res = ID_ERR_LONG.parse::<GuildId>();
+    let _id = match res {
+        Ok(id) => id,
+        Err(error) => panic!("From<String>: {}", error.to_string()),
+    };
+}
+
 // ==== Guild Info ====
 
 #[test]
@@ -157,78 +229,6 @@ fn guild_info_assert_total_shares_members() {
         members_share: 3335,
     };
     data.assert_valid();
-}
-
-// ==== Guild ID ====
-
-const ID_MIN: &str = "1";
-const ID_MAX: &str = "123456789:123456789:123456789:12";
-
-const ID_ERR_NONE: &str = "";
-const ID_ERR_LONG: &str = "123456789:123456789:123456789:123";
-
-#[test]
-fn guild_id_as_bytes() {
-    let id = ID_MIN.parse::<GuildId>().unwrap();
-    assert_eq!(id.as_bytes(), ID_MIN.as_bytes());
-    let id = ID_MAX.parse::<GuildId>().unwrap();
-    assert_eq!(id.as_bytes(), ID_MAX.as_bytes());
-}
-
-#[test]
-fn guild_id_as_str() {
-    let id = ID_MIN.parse::<GuildId>().unwrap();
-    assert_eq!(id.as_str(), ID_MIN);
-    let id = ID_MAX.parse::<GuildId>().unwrap();
-    assert_eq!(id.as_str(), ID_MAX);
-}
-
-#[test]
-fn guild_id_as_ref() {
-    let id = ID_MIN.parse::<GuildId>().unwrap();
-    assert_eq!(id.as_ref(), &ID_MIN.to_string());
-    let id = ID_MAX.parse::<GuildId>().unwrap();
-    assert_eq!(id.as_ref(), &ID_MAX.to_string());
-}
-
-#[test]
-fn guild_id_from_str() {
-    let id: GuildId = ID_MIN.to_string().into();
-    assert_eq!(id.as_bytes(), ID_MIN.as_bytes());
-    let id: GuildId = ID_MAX.to_string().into();
-    assert_eq!(id.as_bytes(), ID_MAX.as_bytes());
-}
-
-#[test]
-#[should_panic(expected = "The string is not a valid guild id")]
-fn guild_id_from_str_panic_none() {
-    let _id: GuildId = ID_ERR_NONE.to_string().into();
-}
-
-#[test]
-#[should_panic(expected = "The string is not a valid guild id")]
-fn guild_id_from_str_panic_long() {
-    let _id: GuildId = ID_ERR_LONG.to_string().into();
-}
-
-#[test]
-#[should_panic(expected = "From<String>: the guild id is invalid")]
-fn guild_id_from_str_error_none() {
-    let res = ID_ERR_NONE.parse::<GuildId>();
-    let _id = match res {
-        Ok(id) => id,
-        Err(error) => panic!("From<String>: {}", error.to_string()),
-    };
-}
-
-#[test]
-#[should_panic(expected = "From<String>: the guild id is invalid")]
-fn guild_id_from_str_error_long() {
-    let res = ID_ERR_LONG.parse::<GuildId>();
-    let _id = match res {
-        Ok(id) => id,
-        Err(error) => panic!("From<String>: {}", error.to_string()),
-    };
 }
 
 // ==== Guild Board ====
