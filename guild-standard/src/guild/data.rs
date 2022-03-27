@@ -4,70 +4,7 @@ pub const MAX_BASIS_POINTS: u16 = 10000;
 
 // ==== Guild ID ====
 
-#[derive(Clone, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
-#[serde(crate = "near_sdk::serde")]
-pub struct GuildId(String);
-
-impl GuildId {
-    /// Returns reference to the guild ID bytes.
-    pub fn as_bytes(&self) -> &[u8] {
-        self.0.as_bytes()
-    }
-    /// Returns reference to the guild ID string.
-    pub fn as_str(&self) -> &str {
-        self.0.as_str()
-    }
-}
-
-impl AsRef<str> for GuildId {
-    fn as_ref(&self) -> &str {
-        self.0.as_str()
-    }
-}
-
-impl From<String> for GuildId {
-    fn from(item: String) -> Self {
-        require!(
-            is_valid_guild_id(item.as_bytes()),
-            "The string is not a valid guild id"
-        );
-        GuildId { 0: item }
-    }
-}
-
-impl fmt::Display for GuildId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0, f)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct GuildIdParseError {}
-
-impl std::str::FromStr for GuildId {
-    type Err = GuildIdParseError;
-
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        if is_valid_guild_id(value.as_bytes()) {
-            Ok(Self(value.to_string()))
-        } else {
-            Err(GuildIdParseError {})
-        }
-    }
-}
-
-impl fmt::Display for GuildIdParseError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "the guild id is invalid")
-    }
-}
-
-impl std::error::Error for GuildIdParseError {}
-
-#[inline(always)]
-fn is_valid_guild_id(id: &[u8]) -> bool {
-    return id.len() > 0 && id.len() <= 32;
-}
+impl_string_id!("guild", GuildId, GuildIdParseError);
 
 // ==== Guild Info ====
 
