@@ -8,11 +8,11 @@ pub use self::data::*;
 
 #[derive(BorshSerialize)]
 pub enum StorageKey {
-    GuildGuildMap,
+    GuildInfoMap,
+    GuildAccountMap,
+    GuildAccountSet { id: AccountId },
     GuildBoardMap,
     GuildBoardList { id: GuildId },
-    GuildMemberMap,
-    GuildMemberSet { id: AccountId },
     GuildMembersMap,
     GuildMembersList { id: GuildId },
 }

@@ -1,27 +1,28 @@
 use crate::*;
 
-const MAX_BASIS_POINTS: u16 = 10000;
+pub const MAX_BASIS_POINTS: u16 = 10000;
 
-// ==== Guild ====
+// ==== Guild Info ====
 
-#[derive(BorshDeserialize, BorshSerialize)]
-pub struct Guild {
+#[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct GuildInfo {
     pub ceo_id: AccountId,
     pub ceo_share: u16,
-    pub board_size: u16,
+    pub board_size: u64,
     pub board_share: u16,
     pub members_size: u64,
     pub members_share: u16,
 }
 
-impl Guild {
+impl GuildInfo {
     pub fn assert_valid(&self) {
         require!(
             self.members_size > 0,
             "Members size must be atleast one or more"
         );
         require!(
-            self.board_size as u64 <= self.members_size,
+            self.board_size <= self.members_size,
             "Board size can not be larger than members size"
         );
         require!(
@@ -114,19 +115,19 @@ fn is_valid_guild_id(id: &[u8]) -> bool {
 // ==== Guild Board ====
 
 #[derive(BorshDeserialize, BorshSerialize)]
-pub struct GuildBoard {
+pub struct BoardMembers {
     /// List of board members and their share.
-    pub members_list: UnorderedMap<AccountId, u16>,
+    pub list: UnorderedMap<AccountId, u16>,
 }
 
-impl GuildBoard {
+impl BoardMembers {
     pub fn assert_valid(&self, max_members: u64) {
         require!(
-            self.members_list.len() <= max_members,
+            self.list.len() <= max_members,
             format!("The board can not have more then {} members", max_members)
         );
         let mut total: u16 = 0;
-        for amount in self.members_list.values() {
+        for amount in self.list.values() {
             total += amount;
         }
         require!(
@@ -140,28 +141,28 @@ impl GuildBoard {
 
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct GuildMembers {
-    /// Total membership value
-    pub total_value: u128,
+    /// Total of membership values for the guild.
+    pub value: u128,
     /// List of guild members and their stake
-    pub members_list: UnorderedMap<AccountId, u128>,
+    pub list: UnorderedMap<AccountId, u128>,
 }
 
 impl GuildMembers {
     pub fn assert_valid(&self, max_members: u64) {
         require!(
-            self.members_list.len() > 0,
+            self.list.len() > 0,
             "Guild members size must be atleast one or more"
         );
         require!(
-            self.members_list.len() <= max_members,
+            self.list.len() <= max_members,
             format!("The guild can not have more then {} members", max_members)
         );
         let mut total: u128 = 0;
-        for amount in self.members_list.values() {
+        for amount in self.list.values() {
             total += amount;
         }
         require!(
-            self.total_value == total,
+            self.value == total,
             "Total value must be the sum of all member values"
         );
     }
@@ -170,7 +171,9 @@ impl GuildMembers {
 // ==== Guild Member Set ====
 
 #[derive(BorshDeserialize, BorshSerialize)]
-pub struct GuildMemberSet {
-    /// Set of all the guilds for a member.
-    pub guilds_set: UnorderedSet<GuildId>,
+pub struct MemberSet {
+    /// Total membership values for a member.
+    pub value: u128,
+    /// Set of all the guild IDs for a member.
+    pub store: UnorderedSet<GuildId>,
 }

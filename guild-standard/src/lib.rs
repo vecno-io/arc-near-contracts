@@ -4,7 +4,7 @@ use near_sdk::{
     serde::{Deserialize, Serialize},
 };
 use near_sdk::{require, AccountId};
-use std::fmt;
+use std::{collections::HashMap, fmt};
 
 pub const GUILD_STANDARD_SPEC: &str = "GUILD-0.1.0";
 

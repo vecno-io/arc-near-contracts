@@ -18,11 +18,11 @@ macro_rules! account_vecno {
     };
 }
 
-// ==== Guild ====
+// ==== Guild Info ====
 
 #[test]
-fn guild_assert_new() {
-    let ceo = Guild {
+fn guild_info_assert_new() {
+    let ceo = GuildInfo {
         ceo_id: account_nodra!(),
         ceo_share: 10000,
         board_size: 0,
@@ -31,7 +31,7 @@ fn guild_assert_new() {
         members_share: 0,
     };
     ceo.assert_valid();
-    let board = Guild {
+    let board = GuildInfo {
         ceo_id: account_vecno!(),
         ceo_share: 0,
         board_size: 1,
@@ -40,7 +40,7 @@ fn guild_assert_new() {
         members_share: 0,
     };
     board.assert_valid();
-    let members = Guild {
+    let members = GuildInfo {
         ceo_id: account_nodra!(),
         ceo_share: 0,
         board_size: 5,
@@ -53,8 +53,8 @@ fn guild_assert_new() {
 
 #[test]
 #[should_panic(expected = "Members size must be atleast one or more")]
-fn guild_assert_member_size() {
-    let data = Guild {
+fn guild_info_assert_member_size() {
+    let data = GuildInfo {
         ceo_id: account_vecno!(),
         ceo_share: 0,
         board_size: 0,
@@ -67,8 +67,8 @@ fn guild_assert_member_size() {
 
 #[test]
 #[should_panic(expected = "Board size can not be larger than members size")]
-fn guild_assert_board_size() {
-    let data = Guild {
+fn guild_info_assert_board_size() {
+    let data = GuildInfo {
         ceo_id: account_vecno!(),
         ceo_share: 0,
         board_size: 2,
@@ -81,8 +81,8 @@ fn guild_assert_board_size() {
 
 #[test]
 #[should_panic(expected = "CEO share can not be more than 100_00 basis points")]
-fn guild_assert_max_ceo_share() {
-    let data = Guild {
+fn guild_info_assert_max_ceo_share() {
+    let data = GuildInfo {
         ceo_id: account_nodra!(),
         ceo_share: 10001,
         board_size: 0,
@@ -94,8 +94,8 @@ fn guild_assert_max_ceo_share() {
 }
 #[test]
 #[should_panic(expected = "Board share can not be more than 100_00 basis points")]
-fn guild_assert_max_board_share() {
-    let data = Guild {
+fn guild_info_assert_max_board_share() {
+    let data = GuildInfo {
         ceo_id: account_vecno!(),
         ceo_share: 0,
         board_size: 0,
@@ -107,8 +107,8 @@ fn guild_assert_max_board_share() {
 }
 #[test]
 #[should_panic(expected = "Members share can not be more than 100_00 basis points")]
-fn guild_assert_max_members_share() {
-    let data = Guild {
+fn guild_info_assert_max_members_share() {
+    let data = GuildInfo {
         ceo_id: account_nodra!(),
         ceo_share: 0,
         board_size: 0,
@@ -121,8 +121,8 @@ fn guild_assert_max_members_share() {
 
 #[test]
 #[should_panic(expected = "Total shares can not be more than 100_00 basis points")]
-fn guild_assert_total_shares_ceo() {
-    let data = Guild {
+fn guild_info_assert_total_shares_ceo() {
+    let data = GuildInfo {
         ceo_id: account_vecno!(),
         ceo_share: 3335,
         board_size: 0,
@@ -134,8 +134,8 @@ fn guild_assert_total_shares_ceo() {
 }
 #[test]
 #[should_panic(expected = "Total shares can not be more than 100_00 basis points")]
-fn guild_assert_total_shares_board() {
-    let data = Guild {
+fn guild_info_assert_total_shares_board() {
+    let data = GuildInfo {
         ceo_id: account_nodra!(),
         ceo_share: 3333,
         board_size: 0,
@@ -147,8 +147,8 @@ fn guild_assert_total_shares_board() {
 }
 #[test]
 #[should_panic(expected = "Total shares can not be more than 100_00 basis points")]
-fn guild_assert_total_shares_members() {
-    let data = Guild {
+fn guild_info_assert_total_shares_members() {
+    let data = GuildInfo {
         ceo_id: account_vecno!(),
         ceo_share: 3333,
         board_size: 0,
@@ -235,42 +235,42 @@ fn guild_id_from_str_error_long() {
 
 #[test]
 fn guild_board_assert_new() {
-    let board = GuildBoard {
-        members_list: UnorderedMap::new(TestStorageKeys::KeyA.try_to_vec().unwrap()),
+    let board = BoardMembers {
+        list: UnorderedMap::new(TestStorageKeys::KeyA.try_to_vec().unwrap()),
     };
     board.assert_valid(0);
-    let mut board = GuildBoard {
-        members_list: UnorderedMap::new(TestStorageKeys::KeyB.try_to_vec().unwrap()),
+    let mut board = BoardMembers {
+        list: UnorderedMap::new(TestStorageKeys::KeyB.try_to_vec().unwrap()),
     };
-    board.members_list.insert(&account_vecno!(), &5000);
+    board.list.insert(&account_vecno!(), &5000);
     board.assert_valid(2);
-    let mut board = GuildBoard {
-        members_list: UnorderedMap::new(TestStorageKeys::KeyC.try_to_vec().unwrap()),
+    let mut board = BoardMembers {
+        list: UnorderedMap::new(TestStorageKeys::KeyC.try_to_vec().unwrap()),
     };
-    board.members_list.insert(&account_vecno!(), &5000);
-    board.members_list.insert(&account_nodra!(), &5000);
+    board.list.insert(&account_vecno!(), &5000);
+    board.list.insert(&account_nodra!(), &5000);
     board.assert_valid(2);
 }
 
 #[test]
 #[should_panic(expected = "The board can not have more then 1 members")]
 fn guild_board_assert_max_members() {
-    let mut board = GuildBoard {
-        members_list: UnorderedMap::new(TestStorageKeys::KeyA.try_to_vec().unwrap()),
+    let mut board = BoardMembers {
+        list: UnorderedMap::new(TestStorageKeys::KeyA.try_to_vec().unwrap()),
     };
-    board.members_list.insert(&account_vecno!(), &5000);
-    board.members_list.insert(&account_nodra!(), &5001);
+    board.list.insert(&account_vecno!(), &5000);
+    board.list.insert(&account_nodra!(), &5001);
     board.assert_valid(1);
 }
 
 #[test]
 #[should_panic(expected = "Total shares can not be more than 100_00 basis points")]
 fn guild_board_assert_total_shares() {
-    let mut board = GuildBoard {
-        members_list: UnorderedMap::new(TestStorageKeys::KeyA.try_to_vec().unwrap()),
+    let mut board = BoardMembers {
+        list: UnorderedMap::new(TestStorageKeys::KeyA.try_to_vec().unwrap()),
     };
-    board.members_list.insert(&account_vecno!(), &5000);
-    board.members_list.insert(&account_nodra!(), &5001);
+    board.list.insert(&account_vecno!(), &5000);
+    board.list.insert(&account_nodra!(), &5001);
     board.assert_valid(2);
 }
 
@@ -279,17 +279,17 @@ fn guild_board_assert_total_shares() {
 #[test]
 fn guild_members_assert_new() {
     let mut board = GuildMembers {
-        total_value: 5000,
-        members_list: UnorderedMap::new(TestStorageKeys::KeyA.try_to_vec().unwrap()),
+        value: 5000,
+        list: UnorderedMap::new(TestStorageKeys::KeyA.try_to_vec().unwrap()),
     };
-    board.members_list.insert(&account_vecno!(), &5000);
+    board.list.insert(&account_vecno!(), &5000);
     board.assert_valid(2);
     let mut board = GuildMembers {
-        total_value: 10000,
-        members_list: UnorderedMap::new(TestStorageKeys::KeyB.try_to_vec().unwrap()),
+        value: 10000,
+        list: UnorderedMap::new(TestStorageKeys::KeyB.try_to_vec().unwrap()),
     };
-    board.members_list.insert(&account_vecno!(), &5000);
-    board.members_list.insert(&account_nodra!(), &5000);
+    board.list.insert(&account_vecno!(), &5000);
+    board.list.insert(&account_nodra!(), &5000);
     board.assert_valid(2);
 }
 
@@ -297,8 +297,8 @@ fn guild_members_assert_new() {
 #[should_panic(expected = "Guild members size must be atleast one or more")]
 fn guild_members_assert_min_members() {
     let board = GuildMembers {
-        total_value: 0,
-        members_list: UnorderedMap::new(TestStorageKeys::KeyA.try_to_vec().unwrap()),
+        value: 0,
+        list: UnorderedMap::new(TestStorageKeys::KeyA.try_to_vec().unwrap()),
     };
     board.assert_valid(0);
 }
@@ -307,11 +307,11 @@ fn guild_members_assert_min_members() {
 #[should_panic(expected = "The guild can not have more then 1 members")]
 fn guild_members_assert_max_members() {
     let mut board = GuildMembers {
-        total_value: 10000,
-        members_list: UnorderedMap::new(TestStorageKeys::KeyA.try_to_vec().unwrap()),
+        value: 10000,
+        list: UnorderedMap::new(TestStorageKeys::KeyA.try_to_vec().unwrap()),
     };
-    board.members_list.insert(&account_vecno!(), &5000);
-    board.members_list.insert(&account_nodra!(), &5000);
+    board.list.insert(&account_vecno!(), &5000);
+    board.list.insert(&account_nodra!(), &5000);
     board.assert_valid(1);
 }
 
@@ -319,10 +319,10 @@ fn guild_members_assert_max_members() {
 #[should_panic(expected = "Total value must be the sum of all member values")]
 fn guild_members_assert_total_value() {
     let mut board = GuildMembers {
-        total_value: 50000,
-        members_list: UnorderedMap::new(TestStorageKeys::KeyA.try_to_vec().unwrap()),
+        value: 50000,
+        list: UnorderedMap::new(TestStorageKeys::KeyA.try_to_vec().unwrap()),
     };
-    board.members_list.insert(&account_vecno!(), &5000);
-    board.members_list.insert(&account_nodra!(), &5000);
+    board.list.insert(&account_vecno!(), &5000);
+    board.list.insert(&account_nodra!(), &5000);
     board.assert_valid(2);
 }
