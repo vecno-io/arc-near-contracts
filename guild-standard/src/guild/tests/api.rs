@@ -32,9 +32,19 @@ macro_rules! get_guild_vecno {
 
 #[test]
 fn guilds_new() {
-    let data = Guilds::new();
+    let id = &"G:01".to_string().into();
+    let data = Guilds::new(id);
     assert_eq!(data.guild_map.len(), 0);
     assert_eq!(data.account_map.len(), 0);
+
+    let state = data
+        .state
+        .get()
+        .expect("the data manager to be set to a guild id");
+
+    assert!(state.vote.is_none());
+    assert_eq!(LockedFor::None, state.lock);
+    assert_eq!(id.to_string(), state.manager.to_string());
 }
 
 #[test]
@@ -51,14 +61,17 @@ fn guilds_register() {
     let mut board_map = HashMap::new();
     board_map.insert(nodra.clone(), 5050 as u16);
 
-    let mut data = Guilds::new();
+    let mut data = Guilds::new(id);
     data.register(id, guild, &board_map, &member_map);
 
-    let info = data
+    let state = data
         .guild_map
         .get(id)
         .expect("guild_map guild G1 not found");
-    assert_eq!(info.try_to_vec().unwrap(), guild.try_to_vec().unwrap());
+    assert_eq!(
+        guild.try_to_vec().unwrap(),
+        state.info.try_to_vec().unwrap()
+    );
 
     let board = data
         .board_map
@@ -124,7 +137,7 @@ fn guilds_register_member_min() {
     let mut board_map = HashMap::new();
     board_map.insert(nodra.clone(), 5050 as u16);
 
-    let mut data = Guilds::new();
+    let mut data = Guilds::new(id);
     data.register(id, &guild, &board_map, &member_map);
 }
 
@@ -145,7 +158,7 @@ fn guilds_register_board_max() {
     let mut board_map = HashMap::new();
     board_map.insert(nodra.clone(), 5050 as u16);
 
-    let mut data = Guilds::new();
+    let mut data = Guilds::new(id);
     data.register(id, &guild, &board_map, &member_map);
 }
 
@@ -166,7 +179,7 @@ fn guilds_register_members_max() {
 
     let board_map = HashMap::new();
 
-    let mut data = Guilds::new();
+    let mut data = Guilds::new(id);
     data.register(id, &guild, &board_map, &member_map);
 }
 
@@ -185,7 +198,7 @@ fn guilds_register_member_ceo() {
     let mut board_map = HashMap::new();
     board_map.insert(vecno.clone(), 5050 as u16);
 
-    let mut data = Guilds::new();
+    let mut data = Guilds::new(id);
     data.register(id, guild, &board_map, &member_map);
 }
 
@@ -202,7 +215,7 @@ fn guilds_register_board_ceo() {
     let mut board_map = HashMap::new();
     board_map.insert(nodra.clone(), 5050 as u16);
 
-    let mut data = Guilds::new();
+    let mut data = Guilds::new(id);
     data.register(id, guild, &board_map, &member_map);
 }
 
@@ -221,7 +234,7 @@ fn guilds_register_guild_id() {
     let mut board_map = HashMap::new();
     board_map.insert(nodra.clone(), 5050 as u16);
 
-    let mut data = Guilds::new();
+    let mut data = Guilds::new(id);
     data.register(id, guild, &board_map, &member_map);
     data.register(id, guild, &board_map, &member_map);
 }
@@ -240,7 +253,7 @@ fn guilds_register_board_member() {
     let mut board_map = HashMap::new();
     board_map.insert(nodra.clone(), 5050 as u16);
 
-    let mut data = Guilds::new();
+    let mut data = Guilds::new(id);
     data.register(id, guild, &board_map, &member_map);
 }
 
@@ -265,6 +278,6 @@ fn guilds_register_total_points() {
     board_map.insert(nitya.clone(), 5000 as u16);
     board_map.insert(nodra.clone(), 5001 as u16);
 
-    let mut data = Guilds::new();
+    let mut data = Guilds::new(id);
     data.register(id, &guild, &board_map, &member_map);
 }

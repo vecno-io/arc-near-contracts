@@ -1,9 +1,9 @@
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
-    collections::{LookupMap, UnorderedMap, UnorderedSet},
+    collections::{LazyOption, LookupMap, UnorderedMap, UnorderedSet},
     serde::{Deserialize, Serialize},
 };
-use near_sdk::{require, AccountId};
+use near_sdk::{env, require, AccountId};
 use std::{collections::HashMap, fmt};
 
 pub const GUILD_STANDARD_SPEC: &str = "GUILD-0.1.0";

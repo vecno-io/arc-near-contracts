@@ -1,24 +1,27 @@
 use crate::*;
 
-// ==== Contract ====
-
-pub trait Contract {}
-
-// ==== Macro Implementation ====
-
 // ==== Standard Implementation ====
 
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Guilds {
-    pub guild_map: UnorderedMap<GuildId, GuildInfo>,
+    pub state: LazyOption<State>,
+    pub guild_map: UnorderedMap<GuildId, GuildState>,
     pub board_map: LookupMap<GuildId, BoardMembers>,
     pub member_map: LookupMap<GuildId, GuildMembers>,
     pub account_map: UnorderedMap<AccountId, MemberSet>,
 }
 
 impl Guilds {
-    pub fn new() -> Self {
+    pub fn new(manager: &GuildId) -> Self {
         Self {
+            state: LazyOption::new(
+                StorageKey::GuildsState.try_to_vec().unwrap(),
+                Some(&State {
+                    manager: manager.clone(),
+                    lock: LockedFor::None,
+                    vote: None,
+                }),
+            ),
             guild_map: UnorderedMap::new(StorageKey::GuildInfoMap.try_to_vec().unwrap()),
             board_map: LookupMap::new(StorageKey::GuildBoardMap.try_to_vec().unwrap()),
             member_map: LookupMap::new(StorageKey::GuildMembersMap.try_to_vec().unwrap()),
@@ -56,8 +59,13 @@ impl Guilds {
             format!("The CEO must be a guild member")
         );
 
+        let state = GuildState {
+            info: guild.clone(),
+            lock: LockedFor::None,
+            vote: None,
+        };
         require!(
-            self.guild_map.insert(&id, &guild).is_none(),
+            self.guild_map.insert(&id, &state).is_none(),
             "The provided guild id is already in use"
         );
 

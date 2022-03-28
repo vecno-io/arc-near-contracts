@@ -8,7 +8,7 @@ impl_string_id!("guild", GuildId, GuildIdParseError);
 
 // ==== Guild Info ====
 
-#[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
+#[derive(Clone, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct GuildInfo {
     pub ceo_id: AccountId,
@@ -47,6 +47,31 @@ impl GuildInfo {
             "Total shares can not be more than 100_00 basis points"
         );
     }
+}
+
+// ==== Guild State ====
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
+#[serde(crate = "near_sdk::serde")]
+pub enum LockedFor {
+    None,
+    Locking,
+    Emergency,
+    CeoChallenge,
+}
+
+#[derive(BorshDeserialize, BorshSerialize)]
+pub struct State {
+    pub manager: GuildId,
+    pub lock: LockedFor,
+    pub vote: Option<VoteId>,
+}
+
+#[derive(BorshDeserialize, BorshSerialize)]
+pub struct GuildState {
+    pub info: GuildInfo,
+    pub lock: LockedFor,
+    pub vote: Option<VoteId>,
 }
 
 // ==== Guild Board ====
