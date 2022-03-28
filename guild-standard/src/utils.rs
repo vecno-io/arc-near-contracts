@@ -1,9 +1,29 @@
+use crate::*;
+
+// ==== Asserts ====
+
+#[inline(always)]
+pub fn assert_one_yocto() {
+    require!(
+        env::attached_deposit() == 1,
+        "Requires attached deposit of exactly 1 yocto",
+    )
+}
+
+#[inline(always)]
+pub fn assert_min_one_yocto() {
+    require!(
+        env::attached_deposit() >= 1,
+        "Requires attached deposit of at least 1 yocto",
+    )
+}
+
 // ==== String ID ====
 
 #[macro_export]
 macro_rules! impl_string_id {
     ($id_name: tt, $string_id: ident, $string_id_error: ident) => {
-        #[derive(Clone, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
+        #[derive(Clone, Debug, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
         #[serde(crate = "near_sdk::serde")]
         pub struct $string_id(String);
 
