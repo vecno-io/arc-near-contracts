@@ -128,7 +128,14 @@ pub struct MotionState {
 // ==== Motion Voice ====
 
 #[derive(BorshDeserialize, BorshSerialize)]
+pub struct MotionTally {
+    pub ceo: bool,
+    pub board: u64,
+    pub members: u64,
+}
+
+#[derive(BorshDeserialize, BorshSerialize)]
 pub struct MotionVoices {
-    pub tally: HashMap<VoteId, u128>,
+    pub tally: HashMap<VoteId, MotionTally>,
     pub votes: UnorderedMap<AccountId, VoteId>,
 }

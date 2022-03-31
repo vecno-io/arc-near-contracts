@@ -42,40 +42,103 @@ impl Votes {
             ),
         };
         for (vote_id, _value) in motion.vote_options.iter() {
+            // Note: In theory this is imposible, but check
             require!(
-                // Note: In theory this is imposible, but check
-                voices.tally.insert(vote_id.clone(), 0).is_none(),
+                voices
+                    .tally
+                    .insert(
+                        vote_id.clone(),
+                        MotionTally {
+                            ceo: false,
+                            board: 0,
+                            members: 0,
+                        }
+                    )
+                    .is_none(),
                 format!("Duplicated vote entry found for {}", vote_id)
             );
         }
         self.voices_map.insert(id, &voices);
     }
 
-    pub fn voice(&mut self, id: &MotionId, vote: VoteId, account: AccountId) {
+    pub fn vote_ceo(&mut self, id: &MotionId, vote: VoteId, account: AccountId) -> MotionVoices {
+        let mut voices = self.assert_voices(id);
+        let tally = self.assert_tally(&vote, &account, &mut voices);
+
+        voices.tally.insert(
+            vote,
+            MotionTally {
+                ceo: true,
+                board: tally.board,
+                members: tally.members + 1,
+            },
+        );
+        self.voices_map.insert(&id, &voices);
+
+        voices
+    }
+
+    pub fn vote_board(&mut self, id: &MotionId, vote: VoteId, account: AccountId) -> MotionVoices {
+        let mut voices = self.assert_voices(id);
+        let tally = self.assert_tally(&vote, &account, &mut voices);
+
+        voices.tally.insert(
+            vote,
+            MotionTally {
+                ceo: tally.ceo,
+                board: tally.board + 1,
+                members: tally.members + 1,
+            },
+        );
+
+        self.voices_map.insert(&id, &voices);
+        voices
+    }
+
+    pub fn vote_member(&mut self, id: &MotionId, vote: VoteId, account: AccountId) -> MotionVoices {
+        let mut voices = self.assert_voices(id);
+        let tally = self.assert_tally(&vote, &account, &mut voices);
+
+        voices.tally.insert(
+            vote,
+            MotionTally {
+                ceo: tally.ceo,
+                board: tally.board,
+                members: tally.members + 1,
+            },
+        );
+        self.voices_map.insert(&id, &voices);
+
+        voices
+    }
+
+    fn assert_tally(
+        &mut self,
+        vote: &VoteId,
+        account: &AccountId,
+        voices: &mut MotionVoices,
+    ) -> MotionTally {
+        let tally = voices.tally.get(vote).expect("missing motion vote");
+        require!(
+            voices.votes.insert(&account, &vote).is_none(),
+            "The account has already voted on the motion"
+        );
+        MotionTally {
+            ceo: tally.ceo,
+            board: tally.board,
+            members: tally.members,
+        }
+    }
+
+    fn assert_voices(&mut self, id: &MotionId) -> MotionVoices {
         let motion = self.motion_map.get(&id).expect("missing motion info");
+        require!(!motion.executed, "Can not vote on an executed motion");
         require!(
             motion.info.expires_at > env::block_timestamp(),
             "Can not vote on an expired motion"
         );
 
-        let mut voices = self.voices_map.get(&id).expect("missing motion voices");
-        let tally = voices
-            .tally
-            .get(&vote)
-            .expect("missing motion vote")
-            .clone();
-
-        require!(
-            voices.votes.insert(&account, &vote).is_none(),
-            "The account has already voted on the motion"
-        );
-
-        voices.tally.insert(vote, tally + 1);
-        self.voices_map.insert(&id, &voices);
+        let voices = self.voices_map.get(&id).expect("missing motion voices");
+        voices
     }
-
-    // pub fn execute(&mut self, id: MotionId) {
-    //     // TODO Implement cross contract call
-    //     // when the motion has an executor
-    // }
 }

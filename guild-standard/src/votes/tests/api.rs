@@ -128,7 +128,9 @@ fn votes_issue() {
             .get(vote_id)
             .expect("option not found in tally")
             .clone();
-        require!(val == 0, "initial tally needs to be zero");
+        require!(!val.ceo, "initial tally needs to be zero");
+        require!(val.board == 0, "initial tally.board needs to be zero");
+        require!(val.members == 0, "initial tally.members needs to be zero");
     }
     require!(0 == voices.votes.len(), "the votes should be zero");
 }
@@ -191,8 +193,8 @@ fn votes_voice() {
 
     require!(voices.votes.len() == 0, "voices.a length hsould be 0");
 
-    data.voice(ida, idn.clone(), account_nodra!());
-    data.voice(ida, idn.clone(), account_vecno!());
+    data.vote_ceo(ida, idn.clone(), account_nodra!());
+    data.vote_board(ida, idn.clone(), account_vecno!());
 
     voices = data
         .voices_map
@@ -212,7 +214,10 @@ fn votes_voice() {
     require!(voice_vecno == idn.clone(), "voice_vecno should be no");
 
     let tally_no = voices.tally.get(&idn.clone()).expect("missing tally no");
-    require!(tally_no.clone() == 2, "tally_no should be 2");
+
+    require!(tally_no.ceo, "tally_no needs to be true");
+    require!(tally_no.board == 1, "tally_no.board should be 1");
+    require!(tally_no.members == 2, "tally_no.members should be 2");
 
     voices = data
         .voices_map
@@ -221,25 +226,32 @@ fn votes_voice() {
 
     require!(voices.votes.len() == 0, "voices.b length hsould be 0");
 
-    data.voice(idb, idy.clone(), account_vecno!());
+    data.vote_board(idb, idn.clone(), account_nodra!());
+    data.vote_member(idb, idy.clone(), account_vecno!());
 
     voices = data
         .voices_map
         .get(idb)
         .expect("missing voices on motion b.b");
 
-    require!(voices.votes.len() == 1, "voices.b length hsould be 1");
+    require!(voices.votes.len() == 2, "voices.b length hsould be 2");
 
     let voice_vecno = voices
         .votes
         .get(&account_vecno!())
         .expect("missing voice vecno");
-    require!(voice_vecno == idy.clone(), "voice_vecno should be no");
+    require!(voice_vecno == idy.clone(), "voice_vecno should be yes");
 
     let tally_no = voices.tally.get(&idn.clone()).expect("missing tally no");
-    let tally_yes = voices.tally.get(&idy.clone()).expect("missing tally tes");
-    require!(tally_no.clone() == 0, "tally_no should be 1");
-    require!(tally_yes.clone() == 1, "tally_no should be 0");
+    let tally_yes = voices.tally.get(&idy.clone()).expect("missing tally yes");
+
+    require!(!tally_no.ceo, "tally_no needs to be false");
+    require!(tally_no.board == 1, "tally_no.board should be 1");
+    require!(tally_no.members == 1, "tally_no.members should be 1");
+
+    require!(!tally_yes.ceo, "tally_yes needs to be false");
+    require!(tally_yes.board == 0, "tally_yes.board should be 0");
+    require!(tally_yes.members == 1, "tally_yes.members should be 1");
 }
 
 #[test]
@@ -255,7 +267,7 @@ fn votes_voice_motion() {
     let motion = get_motion_alpha(time, &options.clone());
     data.issue(mid, &motion.clone());
 
-    data.voice(mid, eid.clone(), account_vecno!());
+    data.vote_ceo(mid, eid.clone(), account_vecno!());
 }
 
 #[test]
@@ -274,7 +286,26 @@ fn votes_voice_expired() {
     context.block_timestamp = 10;
     testing_env!(context);
 
-    data.voice(mid, vid.clone(), account_vecno!());
+    data.vote_member(mid, vid.clone(), account_vecno!());
+}
+
+#[test]
+#[should_panic(expected = "Can not vote on an executed motion")]
+fn votes_voice_executed() {
+    let mid: &MotionId = &"M:01".to_string().into();
+    let vid: VoteId = "V:01".to_string().into();
+    let time = env::block_timestamp();
+
+    let mut data = Votes::new();
+    let options = get_option_agree(vid.clone());
+    let motion = get_motion_alpha(time, &options.clone());
+    data.issue(mid, &motion);
+
+    let mut state = data.motion_map.get(mid).expect("err: missing motion");
+    state.executed = true;
+    data.motion_map.insert(mid, &state);
+
+    data.vote_member(mid, vid.clone(), account_vecno!());
 }
 
 #[test]
@@ -289,6 +320,6 @@ fn votes_voice_account() {
     let motion = get_motion_alpha(time, &options.clone());
     data.issue(mid, &motion.clone());
 
-    data.voice(mid, vid.clone(), account_vecno!());
-    data.voice(mid, vid.clone(), account_vecno!());
+    data.vote_board(mid, vid.clone(), account_vecno!());
+    data.vote_member(mid, vid.clone(), account_vecno!());
 }
