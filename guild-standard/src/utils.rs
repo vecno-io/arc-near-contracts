@@ -23,7 +23,19 @@ pub fn assert_min_one_yocto() {
 #[macro_export]
 macro_rules! impl_string_id {
     ($id_name: tt, $string_id: ident, $string_id_error: ident) => {
-        #[derive(Clone, Debug, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
+        #[derive(
+            Hash,
+            Clone,
+            Debug,
+            Eq,
+            Ord,
+            PartialEq,
+            PartialOrd,
+            Serialize,
+            Deserialize,
+            BorshSerialize,
+            BorshDeserialize,
+        )]
         #[serde(crate = "near_sdk::serde")]
         pub struct $string_id(String);
 
@@ -50,7 +62,7 @@ macro_rules! impl_string_id {
         impl From<String> for $string_id {
             fn from(item: String) -> Self {
                 require!(
-                    is_valid_id(item.as_bytes()),
+                    item.len() > 0 && item.len() <= 32,
                     format!("The string is not a valid ID")
                 );
                 $string_id { 0: item }
@@ -67,7 +79,7 @@ macro_rules! impl_string_id {
             type Err = $string_id_error;
 
             fn from_str(value: &str) -> Result<Self, Self::Err> {
-                if is_valid_id(value.as_bytes()) {
+                if value.len() > 0 && value.len() <= 32 {
                     Ok(Self(value.to_string()))
                 } else {
                     Err($string_id_error {})
@@ -82,11 +94,6 @@ macro_rules! impl_string_id {
         }
 
         impl std::error::Error for $string_id_error {}
-
-        #[inline(always)]
-        fn is_valid_id(id: &[u8]) -> bool {
-            return id.len() > 0 && id.len() <= 32;
-        }
     };
 }
 
