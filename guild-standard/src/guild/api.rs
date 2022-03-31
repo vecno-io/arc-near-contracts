@@ -12,14 +12,15 @@ pub struct Guilds {
 }
 
 impl Guilds {
-    pub fn new(manager: &GuildId) -> Self {
+    pub fn new(exec: &GuildId) -> Self {
         Self {
             state: LazyOption::new(
                 StorageKey::GuildsState.try_to_vec().unwrap(),
                 Some(&State {
-                    manager: manager.clone(),
+                    exec: exec.clone(),
                     lock: LockedFor::None,
                     vote: None,
+                    time: None,
                 }),
             ),
             guild_map: UnorderedMap::new(StorageKey::GuildInfoMap.try_to_vec().unwrap()),

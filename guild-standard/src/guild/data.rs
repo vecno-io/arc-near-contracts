@@ -51,27 +51,19 @@ impl GuildInfo {
 
 // ==== Guild State ====
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
-#[serde(crate = "near_sdk::serde")]
-pub enum LockedFor {
-    None,
-    Locking,
-    Emergency,
-    CeoChallenge,
-}
-
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct State {
-    pub manager: GuildId,
+    pub exec: GuildId,
     pub lock: LockedFor,
-    pub vote: Option<VoteId>,
+    pub time: Option<u64>,
+    pub vote: Option<MotionId>,
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct GuildState {
     pub info: GuildInfo,
     pub lock: LockedFor,
-    pub vote: Option<VoteId>,
+    pub vote: Option<MotionId>,
 }
 
 // ==== Guild Board ====

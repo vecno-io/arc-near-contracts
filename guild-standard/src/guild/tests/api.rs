@@ -37,14 +37,11 @@ fn guilds_new() {
     assert_eq!(data.guild_map.len(), 0);
     assert_eq!(data.account_map.len(), 0);
 
-    let state = data
-        .state
-        .get()
-        .expect("the data manager to be set to a guild id");
-
-    assert!(state.vote.is_none());
+    let state = data.state.get().expect("the data state to be set");
+    assert_eq!(id.to_string(), state.exec.to_string());
     assert_eq!(LockedFor::None, state.lock);
-    assert_eq!(id.to_string(), state.manager.to_string());
+    assert!(state.time.is_none());
+    assert!(state.vote.is_none());
 }
 
 #[test]
