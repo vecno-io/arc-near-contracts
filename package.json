@@ -1,0 +1,11 @@
+{
+    "name": "arc-near-contracts",
+    "version": "1.0.0",
+    "description": "Near contract collection for story-arc.io",
+    "author": "Koen Van Rulo",
+    "license": "MIT",
+    "scripts": {
+        "test": "./run-test.sh",
+        "build": "./run-build.sh"
+    }
+}
