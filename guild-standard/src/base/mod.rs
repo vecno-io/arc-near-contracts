@@ -107,39 +107,6 @@ impl CoreContract {
 
         return None;
     }
-
-    fn exec_unlock_contract_ceo(
-        &mut self,
-        id: &MotionId,
-        sender: AccountId,
-        board_count: u64,
-        member_count: u64,
-    ) -> Option<u64> {
-        let voices = self.votes.vote_ceo(id, get_vote_id_agree(), sender);
-        return self.exec_unlock_contract(id, &voices, board_count, member_count);
-    }
-
-    fn exec_unlock_contract_board(
-        &mut self,
-        id: &MotionId,
-        sender: AccountId,
-        board_count: u64,
-        member_count: u64,
-    ) -> Option<u64> {
-        let voices = self.votes.vote_board(id, get_vote_id_agree(), sender);
-        return self.exec_unlock_contract(id, &voices, board_count, member_count);
-    }
-
-    fn exec_unlock_contract_member(
-        &mut self,
-        id: &MotionId,
-        sender: AccountId,
-        board_count: u64,
-        member_count: u64,
-    ) -> Option<u64> {
-        let voices = self.votes.vote_member(id, get_vote_id_agree(), sender);
-        return self.exec_unlock_contract(id, &voices, board_count, member_count);
-    }
 }
 
 impl ContractLocking for CoreContract {
@@ -148,7 +115,7 @@ impl ContractLocking for CoreContract {
     fn act_lock_contract(&mut self, details: Option<String>) {
         let mut state = self.guilds.state.get().expect("missing guilds state");
         require!(state.lock == LockedFor::None, "contract is not unlocked");
-        require!(state.vote.is_none(), "a motion is active");
+        require!(state.vote.is_none(), "other state motion is active");
         let sender = env::predecessor_account_id();
 
         if let Some(timeout) = state.time {
@@ -292,8 +259,9 @@ impl ContractLocking for CoreContract {
             .get(&state.exec)
             .expect("missing executive guild");
         if exec.info.ceo_id == sender {
+            let voices = self.votes.vote_ceo(&motion, get_vote_id_agree(), sender);
             if let Some(time) =
-                self.exec_unlock_contract_ceo(&motion, sender, board_count, member_count)
+                self.exec_unlock_contract(&motion, &voices, board_count, member_count)
             {
                 state.time = Some(time);
                 state.vote = None;
@@ -304,8 +272,9 @@ impl ContractLocking for CoreContract {
         }
         // Board -> vote > threshold + ceo | members
         if let Some(_member) = board.list.get(&sender) {
+            let voices = self.votes.vote_board(&motion, get_vote_id_agree(), sender);
             if let Some(time) =
-                self.exec_unlock_contract_board(&motion, sender, board_count, member_count)
+                self.exec_unlock_contract(&motion, &voices, board_count, member_count)
             {
                 state.time = Some(time);
                 state.vote = None;
@@ -317,8 +286,9 @@ impl ContractLocking for CoreContract {
         // Member Accounts -> Vote -> threshold + ceo | board
         if let Some(member_set) = self.guilds.account_map.get(&sender) {
             if !member_set.store.is_empty() {
+                let voices = self.votes.vote_member(&motion, get_vote_id_agree(), sender);
                 if let Some(time) =
-                    self.exec_unlock_contract_member(&motion, sender, board_count, member_count)
+                    self.exec_unlock_contract(&motion, &voices, board_count, member_count)
                 {
                     state.time = Some(time);
                     state.vote = None;
@@ -350,3 +320,8 @@ impl ContractLocking for CoreContract {
 //         todo!()
 //     }
 // }
+
+#[cfg(test)]
+mod tests {
+    mod locks;
+}
