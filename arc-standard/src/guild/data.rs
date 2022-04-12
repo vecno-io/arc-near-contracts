@@ -87,7 +87,7 @@ pub struct GuildBoard {
 }
 
 impl GuildData {
-    pub fn assert_valid(&self) {
+    pub fn require_valid(&self) {
         require!(self.icon.is_some() == self.icon_hash.is_some());
         if let Some(icon_hash) = &self.icon_hash {
             require!(
@@ -113,7 +113,7 @@ impl GuildData {
 }
 
 impl GuildBoard {
-    pub fn assert_valid(&self) {
+    pub fn require_valid(&self) {
         require!(
             (self.size as usize) >= self.members.len(),
             format!(

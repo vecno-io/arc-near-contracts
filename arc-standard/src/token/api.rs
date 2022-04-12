@@ -136,7 +136,7 @@ macro_rules! impl_nft_tokens {
                 approval_id: Option<u64>,
                 memo: Option<String>,
             ) {
-                assert_one_yocto();
+                require_one_yocto();
                 let sender_id = env::predecessor_account_id();
                 let token =
                     self.$tokens
@@ -158,13 +158,15 @@ macro_rules! impl_nft_tokens {
                 memo: Option<String>,
                 msg: String,
             ) -> PromiseOrValue<bool> {
-                assert_one_yocto();
+                require_one_yocto();
 
                 let attached_gas = env::prepaid_gas();
-                assert!(
+                require!(
                     attached_gas >= MIN_GAS_FOR_NFT_TRANSFER_CALL,
-                    "You cannot attach less than {:?} Gas to nft_transfer_call",
-                    MIN_GAS_FOR_NFT_TRANSFER_CALL
+                    format!(
+                        "You cannot attach less than {:?} Gas to nft_transfer_call",
+                        MIN_GAS_FOR_NFT_TRANSFER_CALL
+                    )
                 );
 
                 let sender_id = env::predecessor_account_id();
@@ -238,16 +240,15 @@ macro_rules! impl_nft_tokens {
                 account_id: AccountId,
                 msg: Option<String>,
             ) {
-                assert_min_one_yocto();
+                require_min_one_yocto();
 
                 let mut token = self
                     .$tokens
                     .info_by_id
                     .get(&token_id)
                     .expect("Token not found");
-                assert_eq!(
-                    &env::predecessor_account_id(),
-                    &token.owner_id,
+                require!(
+                    &env::predecessor_account_id() == &token.owner_id,
                     "Signer must be the token owner."
                 );
 
@@ -283,7 +284,7 @@ macro_rules! impl_nft_tokens {
 
             #[payable]
             fn nft_revoke(&mut self, token_id: TokenId, account_id: AccountId) {
-                assert_one_yocto();
+                require_one_yocto();
 
                 let mut token = self
                     .$tokens
@@ -291,8 +292,8 @@ macro_rules! impl_nft_tokens {
                     .get(&token_id)
                     .expect("Token not found");
                 let sender_id = env::predecessor_account_id();
-                assert_eq!(
-                    &sender_id, &token.owner_id,
+                require!(
+                    &sender_id == &token.owner_id,
                     "Signer must be the token owner."
                 );
 
@@ -304,7 +305,7 @@ macro_rules! impl_nft_tokens {
 
             #[payable]
             fn nft_revoke_all(&mut self, token_id: TokenId) {
-                assert_one_yocto();
+                require_one_yocto();
 
                 let mut token = self
                     .$tokens
@@ -312,8 +313,8 @@ macro_rules! impl_nft_tokens {
                     .get(&token_id)
                     .expect("Token not found");
                 let sender_id = env::predecessor_account_id();
-                assert_eq!(
-                    &sender_id, &token.owner_id,
+                require!(
+                    &sender_id == &token.owner_id,
                     "Signer must be the token owner."
                 );
 
@@ -364,7 +365,7 @@ macro_rules! impl_nft_tokens {
                 balance: U128,
                 max_len_payout: u32,
             ) -> JsonPayout {
-                assert_one_yocto();
+                require_one_yocto();
                 let sender_id = env::predecessor_account_id();
                 let token =
                     self.$tokens

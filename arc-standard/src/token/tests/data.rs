@@ -15,7 +15,7 @@ fn test_token_payout_assert_valid() {
     alpha.accounts.insert(new_account_id!("beta.near"), 2500);
     alpha.accounts.insert(new_account_id!("gamma.near"), 2500);
     alpha.accounts.insert(new_account_id!("delta.near"), 2500);
-    alpha.assert_valid();
+    alpha.require_valid();
 
     let mut beta = TokenPayout::new();
     beta.accounts.insert(new_account_id!("alpha.near"), 2000);
@@ -23,7 +23,7 @@ fn test_token_payout_assert_valid() {
     beta.accounts.insert(new_account_id!("gamma.near"), 2000);
     beta.accounts.insert(new_account_id!("delta.near"), 2000);
     beta.guild = 2000;
-    beta.assert_valid();
+    beta.require_valid();
 }
 
 #[test]
@@ -35,7 +35,7 @@ fn test_token_payout_assert_valid_len() {
     alpha.accounts.insert(new_account_id!("gamma.near"), 100);
     alpha.accounts.insert(new_account_id!("delta.near"), 100);
     alpha.accounts.insert(new_account_id!("epsi.near"), 100);
-    alpha.assert_valid();
+    alpha.require_valid();
 }
 
 #[test]
@@ -44,7 +44,7 @@ fn test_token_payout_assert_valid_total() {
     let mut alpha = TokenPayout::new();
     alpha.accounts.insert(new_account_id!("alpha.near"), 5001);
     alpha.accounts.insert(new_account_id!("beta.near"), 5001);
-    alpha.assert_valid();
+    alpha.require_valid();
 }
 
 #[test]
@@ -54,5 +54,5 @@ fn test_token_payout_assert_valid_total_guild() {
     alpha.accounts.insert(new_account_id!("alpha.near"), 5001);
     alpha.accounts.insert(new_account_id!("beta.near"), 5001);
     alpha.guild = 2000;
-    alpha.assert_valid();
+    alpha.require_valid();
 }

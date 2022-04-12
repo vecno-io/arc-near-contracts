@@ -78,13 +78,13 @@ pub struct Attributes {
 }
 
 impl ActorData {
-    pub fn assert_valid(&self) {
-        self.name.assert_valid();
+    pub fn require_valid(&self) {
+        self.name.require_valid();
     }
 }
 
 impl Name {
-    pub fn assert_valid(&self) {
+    pub fn require_valid(&self) {
         // Note: Look in to regex in near
         // https://github.com/rust-lang/regex
         require!(

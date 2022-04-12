@@ -41,7 +41,7 @@ impl Actors {
         actor_data: ActorData,
         memo: Option<String>,
     ) {
-        actor_data.assert_valid();
+        actor_data.require_valid();
 
         require!(
             self.data_for_id.insert(token_id, &actor_data).is_none(),

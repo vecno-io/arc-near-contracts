@@ -61,8 +61,8 @@ impl Guilds {
         guild_payout: Option<AccountId>,
         memo: Option<String>,
     ) {
-        guild_data.assert_valid();
-        guild_board.assert_valid();
+        guild_data.require_valid();
+        guild_board.require_valid();
 
         let guild = Guild {
             ceo_id: ceo_id.clone(),

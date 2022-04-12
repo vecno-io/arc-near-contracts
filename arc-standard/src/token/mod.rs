@@ -48,8 +48,8 @@ impl Tokens {
         guild_id: Option<GuildId>,
         memo: Option<String>,
     ) {
-        token_data.assert_valid();
-        token_payout.assert_valid();
+        token_data.require_valid();
+        token_payout.require_valid();
 
         let token = Token {
             type_id: type_id,
@@ -101,14 +101,14 @@ impl Tokens {
                     .approved_accounts
                     .get(&sender_id)
                     .expect("Sender is not authorized to transfer");
-                assert_eq!(
-                    actual_approval_id, &enforced_approval_id,
+                require!(
+                    actual_approval_id == &enforced_approval_id,
                     "Sender provided an invalid approval id",
                 );
             }
         }
-        assert_ne!(
-            &token.owner_id, receiver_id,
+        require!(
+            &token.owner_id != receiver_id,
             "The owner and the receiver should be different."
         );
 

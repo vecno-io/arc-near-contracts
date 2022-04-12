@@ -39,9 +39,9 @@ impl App {
     ) -> Self {
         require!(!env::state_exists(), "Already initialized");
 
-        guild_data.assert_valid();
-        guild_board.assert_valid();
-        app_metadata.assert_valid();
+        guild_data.require_valid();
+        guild_board.require_valid();
+        app_metadata.require_valid();
 
         let mut this = Self {
             admin: Admin::new(StorageKey::AppAdmin.try_to_vec().unwrap(), Some(&guild_id)),
@@ -118,7 +118,7 @@ impl ArcApp for App {
         guild_board: GuildBoard,
         guild_payout: Option<AccountId>,
     ) {
-        assert_min_one_yocto();
+        require_min_one_yocto();
         let storage_usage = env::storage_usage();
 
         // TODO Implement checks who can call this?
@@ -148,7 +148,7 @@ impl ArcApp for App {
         token_payout: TokenPayout,
         guild_id: Option<GuildId>,
     ) {
-        assert_min_one_yocto();
+        require_min_one_yocto();
         let storage_usage = env::storage_usage();
 
         self.token.register(
@@ -167,7 +167,7 @@ impl ArcApp for App {
 
     #[payable]
     fn arc_add_guild_member(&mut self, guild_key: GuildId, member_id: AccountId) {
-        assert_min_one_yocto();
+        require_min_one_yocto();
         let storage_usage = env::storage_usage();
 
         // TODO: FixMe: Temp rush job to meet encode club dealines

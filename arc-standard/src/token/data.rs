@@ -88,7 +88,7 @@ pub struct TokenPayout {
 }
 
 impl TokenData {
-    pub fn assert_valid(&self) {
+    pub fn require_valid(&self) {
         require!(
             self.title.is_some() && self.title.as_ref().unwrap().len() <= 28,
             "Max title length = 28"
@@ -127,7 +127,7 @@ impl TokenPayout {
         };
     }
 
-    pub fn assert_valid(&self) {
+    pub fn require_valid(&self) {
         let mut total = self.guild;
         require!(
             self.accounts.len() < 5,
@@ -167,7 +167,7 @@ impl TokenPayout {
                     .insert(account, royalty_to_payout(self.guild, amount));
             }
         }
-        assert!(
+        require!(
             self.accounts.len() as u32 <= max_payouts,
             "The request cannot payout all royalties"
         );
@@ -184,7 +184,7 @@ impl TokenPayout {
                     .insert(key.clone(), royalty_to_payout(royalty, amount));
             }
         }
-        assert!(
+        require!(
             total_payout <= MAX_BASE_POINTS_TOTAL,
             "The total payout percentage is to large"
         );

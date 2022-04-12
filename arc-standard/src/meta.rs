@@ -37,7 +37,7 @@ pub trait NftMetadata {
 }
 
 impl Metadata {
-    pub fn assert_valid(&self) {
+    pub fn require_valid(&self) {
         require!(
             self.reference.is_some() == self.reference_hash.is_some(),
             "Reference and reference hash must be present"
@@ -51,7 +51,7 @@ impl Metadata {
     }
 }
 impl JsonMetadata {
-    pub fn assert_valid(&self) {
+    pub fn require_valid(&self) {
         require!(self.spec == NFT_METADATA_SPEC, "Spec is not NFT metadata");
         require!(
             self.reference.is_some() == self.reference_hash.is_some(),

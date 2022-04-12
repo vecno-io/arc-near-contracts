@@ -12,17 +12,16 @@ pub const GAS_FOR_NFT_TRANSFER_CALL: Gas = Gas(35_000_000_000_000);
 pub const MIN_GAS_FOR_NFT_TRANSFER_CALL: Gas = Gas(100_000_000_000_000);
 
 //used to make sure the user attached exactly 1 yoctoNEAR
-pub fn assert_one_yocto() {
-    assert_eq!(
-        env::attached_deposit(),
-        1,
+pub fn require_one_yocto() {
+    require!(
+        env::attached_deposit() == 1,
         "Requires attached deposit of exactly 1 yocto",
     )
 }
 
 //used to make sure the user attached exactly 1 yoctoNEAR
-pub fn assert_min_one_yocto() {
-    assert!(
+pub fn require_min_one_yocto() {
+    require!(
         env::attached_deposit() >= 1,
         "Requires attached deposit of at least 1 yocto",
     )
@@ -41,10 +40,9 @@ pub fn refund_storage_deposit(storage_used: u64) {
     let attached_deposit = env::attached_deposit();
     let finalized_refund = attached_deposit - required_cost;
     //make sure that the attached deposit is greater than or equal to the required cost
-    assert!(
+    require!(
         required_cost <= attached_deposit,
-        "Must attach {} yocto to cover storage cost",
-        required_cost,
+        format!("Must attach {} yocto to cover storage cost", required_cost),
     );
 
     if finalized_refund > 1 {
