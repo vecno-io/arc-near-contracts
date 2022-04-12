@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 
-cd ./arc-app && cargo test && cd .. 
-cd ./arc-core && cargo test && cd .. 
-cd ./arc-market && cargo test && cd ..
+cd ./standard && cargo test && cd .. 
+
+cd ./arc-actor && cargo test && cd .. 
+cd ./arc-guild && cargo test && cd ..

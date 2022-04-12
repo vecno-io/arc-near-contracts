@@ -1,5 +1,5 @@
 [package]
-name = "guild-standard"
+name = "arc-actor"
 version = "0.1.0"
 authors = ["vecno.io <info@vecno.io>"]
 edition = "2021"
@@ -10,5 +10,6 @@ repository = "https://github.com/vecno-io/arc-near-contracts"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+arc-standard = { path = "../standard" }
 near-sdk = "=4.0.0-pre.7"
 serde_json = "1.0"

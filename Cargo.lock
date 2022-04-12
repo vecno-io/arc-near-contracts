@@ -29,7 +29,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "arc-app"
+name = "arc-actor"
 version = "0.1.0"
 dependencies = [
  "arc-standard",
@@ -38,16 +38,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "arc-core"
-version = "0.1.0"
-dependencies = [
- "arc-standard",
- "near-sdk",
- "serde_json",
-]
-
-[[package]]
-name = "arc-market"
+name = "arc-guild"
 version = "0.1.0"
 dependencies = [
  "arc-standard",
