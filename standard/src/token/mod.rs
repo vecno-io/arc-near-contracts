@@ -1,22 +1,13 @@
 use crate::*;
 
-use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::collections::{LookupMap, UnorderedMap, UnorderedSet};
-use near_sdk::{env, require, AccountId};
+use crate::event::*;
+use crate::share::*;
 
 pub mod api;
 pub mod data;
 
 pub use self::api::*;
 pub use self::data::*;
-
-#[derive(BorshSerialize)]
-pub enum StorageKey {
-    TokenInfoById,
-    TokenDataForId,
-    TokenListPerOwner,
-    TokenListPerOwnerSet { owner_key: AccountKey },
-}
 
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Tokens {
@@ -25,7 +16,7 @@ pub struct Tokens {
     //keeps track of the tokens data for a given token key
     pub data_for_id: UnorderedMap<TokenId, TokenData>,
     //keeps track of all the tokens for a given account key
-    pub list_per_owner: LookupMap<AccountKey, UnorderedSet<TokenId>>,
+    pub list_per_owner: LookupMap<AccountId, UnorderedSet<TokenId>>,
 }
 
 impl Tokens {
@@ -146,7 +137,7 @@ impl Tokens {
     }
 }
 
-crate::impl_item_is_owned!(Tokens, TokenId, TokenListPerOwnerSet);
+crate::impl_is_owned!(Tokens, TokenId, TokenListPerOwnerSet);
 
 #[cfg(test)]
 mod tests {

@@ -1,21 +1,37 @@
-use crate::*;
+// ==== Is Owned ====
 
-// ==== Asserts ====
+#[macro_export]
+macro_rules! impl_is_owned {
+    ($struct: ident, $key: ident, $store: ident) => {
+        impl $struct {
+            pub fn add_to_owner(&mut self, owner: AccountId, id: &$key) {
+                let mut owner_set = self.list_per_owner.get(&owner).unwrap_or_else(|| {
+                    UnorderedSet::new(
+                        $crate::share::StorageKey::$store {
+                            owner_key: owner.clone(),
+                        }
+                        .try_to_vec()
+                        .unwrap(),
+                    )
+                });
+                owner_set.insert(id);
+                self.list_per_owner.insert(&owner, &owner_set);
+            }
 
-#[inline(always)]
-pub fn assert_one_yocto() {
-    require!(
-        env::attached_deposit() == 1,
-        "Requires attached deposit of exactly 1 yocto",
-    )
-}
-
-#[inline(always)]
-pub fn assert_min_one_yocto() {
-    require!(
-        env::attached_deposit() >= 1,
-        "Requires attached deposit of at least 1 yocto",
-    )
+            pub fn remove_from_owner(&mut self, owner: AccountId, id: &$key) {
+                let mut owner_set = self
+                    .list_per_owner
+                    .get(&owner)
+                    .expect("owner set not found");
+                if owner_set.len() == 1 {
+                    self.list_per_owner.remove(&owner);
+                } else {
+                    owner_set.remove(id);
+                    self.list_per_owner.insert(&owner, &owner_set);
+                }
+            }
+        }
+    };
 }
 
 // ==== String ID ====

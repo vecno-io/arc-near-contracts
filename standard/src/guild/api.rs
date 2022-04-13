@@ -1,4 +1,33 @@
-use crate::*;
+use super::*;
+
+// ==== Lock Contract ====
+
+pub trait ContractLocking {
+    fn act_lock_contract(&mut self, details: Option<String>);
+    fn vote_lock_contract(&mut self);
+    fn act_unlock_contract(&mut self, details: String);
+    fn vote_unlock_contract(&mut self);
+}
+
+pub trait ContractChallenging {
+    fn act_challenge_contract_exec(&mut self, details: String);
+    fn vote_challenge_contract_exec(&mut self);
+    fn act_replace_contract_exec(&mut self, details: String);
+    fn vote_replace_contract_exec(&mut self);
+}
+
+pub trait ContractBoard {
+    fn act_lock_contract_ceo(&mut self, details: String);
+    fn vote_lock_contract_ceo(&mut self);
+}
+
+// ==== Lock Guild ====
+
+pub trait LockGuild {
+    fn act_lock_guild(&mut self, guild_id: &GuildId, details: String);
+    fn vote_lock_guild(&mut self, guild_id: &GuildId, details: Option<String>);
+    fn vote_unlock_guild(&mut self, guild_id: &GuildId);
+}
 
 // ==== Standard Implementation ====
 

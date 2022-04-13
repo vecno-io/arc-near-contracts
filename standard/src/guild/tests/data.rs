@@ -1,4 +1,4 @@
-use crate::*;
+use crate::guild::*;
 
 #[derive(BorshSerialize)]
 pub enum TestStorageKeys {
@@ -16,14 +16,6 @@ macro_rules! account_vecno {
     () => {
         "vecno.near".parse::<AccountId>().unwrap()
     };
-}
-
-// ==== Guild ID ====
-
-mod guild_id {
-    use crate::*;
-
-    impl_string_id_tests!("guild", GuildId);
 }
 
 // ==== Guild Info ====

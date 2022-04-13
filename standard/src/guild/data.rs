@@ -1,10 +1,6 @@
-use crate::*;
+use super::*;
 
 pub const MAX_BASIS_POINTS: u16 = 10000;
-
-// ==== Guild ID ====
-
-impl_string_id!("guild", GuildId, GuildIdParseError);
 
 // ==== Guild Info ====
 

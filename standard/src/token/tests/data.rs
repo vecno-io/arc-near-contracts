@@ -1,6 +1,4 @@
-use near_sdk::AccountId;
-
-use crate::*;
+use crate::token::*;
 
 macro_rules! new_account_id {
     ($str: expr) => {

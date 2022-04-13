@@ -1,4 +1,4 @@
-use crate::*;
+use crate::guild::vote::*;
 
 macro_rules! account_nodra {
     () => {
@@ -46,20 +46,6 @@ fn get_option_duality() -> HashMap<VoteId, VoteInfo> {
         },
     );
     options
-}
-
-// ==== Type IDs ====
-
-mod vote_id {
-    use crate::*;
-
-    impl_string_id_tests!("vote", VoteId);
-}
-
-mod motion_id {
-    use crate::*;
-
-    impl_string_id_tests!("motion", MotionId);
 }
 
 #[test]

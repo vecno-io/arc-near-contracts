@@ -1,4 +1,6 @@
-use crate::*;
+use super::*;
+
+use crate::token::TokenData;
 
 #[derive(Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]

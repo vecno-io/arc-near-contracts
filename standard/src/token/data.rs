@@ -1,4 +1,4 @@
-use crate::*;
+use super::*;
 
 use std::collections::HashMap;
 
@@ -12,22 +12,6 @@ pub enum TokenType {
     None = 0,
     Actor,
     Asset,
-}
-
-#[derive(Clone, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
-#[serde(crate = "near_sdk::serde")]
-pub struct TokenId(String);
-
-impl ToString for TokenId {
-    fn to_string(&self) -> String {
-        self.0.to_string()
-    }
-}
-
-impl From<String> for TokenId {
-    fn from(item: String) -> Self {
-        TokenId { 0: item }
-    }
 }
 
 #[derive(Clone, BorshDeserialize, BorshSerialize)]

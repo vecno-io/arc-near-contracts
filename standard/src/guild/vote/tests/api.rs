@@ -1,4 +1,4 @@
-use crate::*;
+use crate::guild::vote::*;
 
 use near_sdk::{test_utils::VMContextBuilder, testing_env};
 

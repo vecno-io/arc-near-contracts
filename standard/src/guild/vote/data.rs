@@ -1,9 +1,4 @@
-use crate::*;
-
-// ==== Type IDs ====
-
-impl_string_id!("vote", VoteId, VoteIdParseError);
-impl_string_id!("motion", MotionId, MotionIdParseError);
+use super::*;
 
 // ==== Vote Info ====
 

@@ -1,4 +1,4 @@
-use crate::*;
+use super::*;
 
 pub const EXPIRE_12H: u64 = 43200;
 pub const EXPIRE_24H: u64 = 86400;
