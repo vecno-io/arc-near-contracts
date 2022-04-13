@@ -1,6 +1,9 @@
 use crate::*;
 
+pub mod meta;
 pub mod utility;
+
+pub use self::meta::*;
 
 pub const MAX_BASE_POINTS_TOTAL: u16 = 10000;
 
