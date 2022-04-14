@@ -51,6 +51,13 @@ impl_string_id!("motion", MotionId, MotionIdParseError);
 impl_string_id!("token", TokenId, TokenIdParseError);
 impl_string_id!("vote", VoteId, VoteIdParseError);
 
+#[derive(Clone, BorshDeserialize, BorshSerialize)]
+pub struct OwnerIds {
+    pub account: AccountId,
+    pub guild_id: Option<GuildId>,
+    pub token_id: Option<TokenId>,
+}
+
 // ==== Required States ====
 
 #[inline(always)]

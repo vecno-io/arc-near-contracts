@@ -183,7 +183,7 @@ macro_rules! impl_nft_tokens {
                     let token = self.$tokens.info_by_id.get(&token_id).unwrap();
                     return Some(JsonToken {
                         token_id: token_id,
-                        owner_id: token.owner_id,
+                        owner_id: token.owner.account,
                         metadata: tokendata,
                     });
                 }
@@ -208,7 +208,7 @@ macro_rules! impl_nft_tokens {
                     self.$actors.transfer(&token_id, &sender_id, &receiver_id);
                 }
 
-                refund_approved_accounts(token.owner_id.clone(), &token.approved_accounts);
+                refund_approved_accounts(token.owner.account.clone(), &token.approved_accounts);
             }
 
             #[payable]
@@ -226,7 +226,7 @@ macro_rules! impl_nft_tokens {
                 require!(
                     attached_gas >= MIN_GAS_FOR_NFT_TRANSFER_CALL,
                     format!(
-                        "You cannot attach less than {:?} Gas to nft_transfer_call",
+                        "you cannot attach less than {:?} Gas to nft_transfer_call",
                         MIN_GAS_FOR_NFT_TRANSFER_CALL
                     )
                 );
@@ -245,13 +245,13 @@ macro_rules! impl_nft_tokens {
                 }
 
                 let mut authorized_id = None;
-                if sender_id != token.owner_id {
+                if sender_id != token.owner.account {
                     authorized_id = Some(sender_id.to_string());
                 }
 
                 return ext_nft_receiver::nft_on_transfer(
                     sender_id,
-                    token.owner_id.clone(),
+                    token.owner.account.clone(),
                     token_id.clone(),
                     msg,
                     receiver_id.clone(),
@@ -260,7 +260,7 @@ macro_rules! impl_nft_tokens {
                 )
                 .then(ext_self::nft_resolve_transfer(
                     authorized_id,
-                    token.owner_id,
+                    token.owner.account,
                     receiver_id,
                     token_id,
                     token.approved_accounts,
@@ -285,7 +285,12 @@ macro_rules! impl_nft_tokens {
                     .$tokens
                     .info_by_id
                     .get(&token_id)
-                    .expect("Token not found");
+                    .expect("token not found");
+
+                if (token.owner.token_id.is_some()) {
+                    return false;
+                }
+
                 if let Some(approval) = token.approved_accounts.get(&approved_account_id) {
                     if let Some(approval_id) = approval_id {
                         return approval_id == *approval;
@@ -308,10 +313,15 @@ macro_rules! impl_nft_tokens {
                     .$tokens
                     .info_by_id
                     .get(&token_id)
-                    .expect("Token not found");
+                    .expect("token not found");
+
                 require!(
-                    &env::predecessor_account_id() == &token.owner_id,
-                    "Signer must be the token owner."
+                    &env::predecessor_account_id() == &token.owner.account,
+                    "signer must be the token owner"
+                );
+                require!(
+                    token.owner.token_id.is_none(),
+                    "can not approve transfers for tokens owned by other tokens"
                 );
 
                 let approval_id: u64 = token.approval_index;
@@ -333,7 +343,7 @@ macro_rules! impl_nft_tokens {
                 if let Some(msg) = msg {
                     ext_nft_receiver::nft_on_approve(
                         token_id,
-                        token.owner_id,
+                        token.owner.account,
                         approval_id,
                         msg,
                         account_id,
@@ -352,11 +362,16 @@ macro_rules! impl_nft_tokens {
                     .$tokens
                     .info_by_id
                     .get(&token_id)
-                    .expect("Token not found");
+                    .expect("token not found");
+                require!(
+                    token.owner.token_id.is_none(),
+                    "tokens owned by other tokens have no approval"
+                );
+
                 let sender_id = env::predecessor_account_id();
                 require!(
-                    &sender_id == &token.owner_id,
-                    "Signer must be the token owner."
+                    &sender_id == &token.owner.account,
+                    "signer must be the token owner"
                 );
 
                 if token.approved_accounts.remove(&account_id).is_some() {
@@ -373,11 +388,16 @@ macro_rules! impl_nft_tokens {
                     .$tokens
                     .info_by_id
                     .get(&token_id)
-                    .expect("Token not found");
+                    .expect("token not found");
+                require!(
+                    token.owner.token_id.is_none(),
+                    "tokens owned by other tokens have no approval"
+                );
+
                 let sender_id = env::predecessor_account_id();
                 require!(
-                    &sender_id == &token.owner_id,
-                    "Signer must be the token owner."
+                    &sender_id == &token.owner.account,
+                    "signer must be the token owner"
                 );
 
                 if !token.approved_accounts.is_empty() {
@@ -400,11 +420,17 @@ macro_rules! impl_nft_tokens {
                     .$tokens
                     .info_by_id
                     .get(&token_id.into())
-                    .expect("Token not found");
-
-                return token
-                    .payout
-                    .compute(balance.into(), max_len_payout, token.owner_id, None);
+                    .expect("token not found");
+                require!(
+                    token.owner.token_id.is_none(),
+                    "can not payout tokens owned by other tokens"
+                );
+                return token.payout.compute(
+                    balance.into(),
+                    max_len_payout,
+                    token.owner.account,
+                    None,
+                );
             }
 
             #[payable]
@@ -427,14 +453,14 @@ macro_rules! impl_nft_tokens {
                     self.$actors.transfer(&token_id, &sender_id, &receiver_id);
                 }
 
-                refund_approved_accounts(token.owner_id.clone(), &token.approved_accounts);
+                refund_approved_accounts(token.owner.account.clone(), &token.approved_accounts);
 
                 let mut guild_account: Option<AccountId> = None;
 
                 return token.payout.compute(
                     balance.into(),
                     max_len_payout,
-                    token.owner_id,
+                    token.owner.account,
                     guild_account,
                 );
             }
@@ -510,7 +536,7 @@ macro_rules! impl_nft_tokens {
                 }
 
                 let mut token = if let Some(token) = self.$tokens.info_by_id.get(&token_id) {
-                    if token.owner_id != receiver_id {
+                    if token.owner.account != receiver_id {
                         refund_approved_accounts(owner_id, &approved_account_ids);
                         return true;
                     }
@@ -525,7 +551,7 @@ macro_rules! impl_nft_tokens {
                 self.$tokens
                     .add_to_owner(owner_id.clone().into(), &token_id);
 
-                token.owner_id = owner_id.clone();
+                token.owner.account = owner_id.clone();
                 refund_approved_accounts(receiver_id.clone(), &token.approved_accounts);
 
                 token.approved_accounts = approved_account_ids;

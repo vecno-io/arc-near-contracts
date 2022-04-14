@@ -18,10 +18,8 @@ pub enum TokenType {
 pub struct Token {
     //type id for the token
     pub type_id: TokenType,
-    //owner id for the token
-    pub owner_id: AccountId,
-    //guild id for the token
-    pub guild_id: Option<GuildId>,
+    //owner info for the token
+    pub owner: OwnerIds,
     //royalties for this token
     pub payout: TokenPayout,
     //approval index tracker
@@ -51,10 +49,10 @@ pub struct JsonPayout {
 #[serde(crate = "near_sdk::serde")]
 pub struct TokenData {
     pub copies: Option<u64>,
-    pub issued_at: Option<u64>,
-    pub expires_at: Option<u64>,
-    pub starts_at: Option<u64>,
-    pub updated_at: Option<u64>,
+    pub issued_at: Option<String>,
+    pub expires_at: Option<String>,
+    pub starts_at: Option<String>,
+    pub updated_at: Option<String>,
     pub title: Option<String>,
     pub description: Option<String>,
     pub extra: Option<String>,

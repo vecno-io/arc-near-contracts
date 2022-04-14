@@ -31,12 +31,11 @@ impl Tokens {
 
     pub fn register(
         &mut self,
-        receiver_id: &AccountId,
+        owner: &OwnerIds,
         token_id: &TokenId,
         type_id: TokenType,
         token_data: TokenData,
         token_payout: TokenPayout,
-        guild_id: Option<GuildId>,
         memo: Option<String>,
     ) {
         token_data.require_valid();
@@ -44,8 +43,7 @@ impl Tokens {
 
         let token = Token {
             type_id: type_id,
-            owner_id: receiver_id.clone(),
-            guild_id: guild_id,
+            owner: owner.clone(),
             payout: token_payout,
             approval_index: 0,
             approved_accounts: Default::default(),
@@ -55,19 +53,19 @@ impl Tokens {
             "A token with the provided id already exits"
         );
 
-        self.add_to_owner(receiver_id.clone().into(), &token_id);
+        self.add_to_owner(owner.account.clone().into(), &token_id);
         self.data_for_id.insert(&token_id, &token_data);
 
-        let nft_transfer_log: JsonEventLog = JsonEventLog {
+        let nft_mint_log: JsonEventLog = JsonEventLog {
             standard: EVENT_NFT_STANDARD_NAME.to_string(),
             version: EVENT_NFT_METADATA_SPEC.to_string(),
             event: JsonEventVariant::NftMint(vec![NftMintLog {
-                owner_id: token.owner_id.to_string(),
+                owner_id: token.owner.account.to_string(),
                 token_ids: vec![token_id.to_string()],
                 memo,
             }]),
         };
-        env::log_str(&nft_transfer_log.to_string());
+        env::log_str(&nft_mint_log.to_string());
     }
 
     pub fn transfer(
@@ -83,7 +81,12 @@ impl Tokens {
             .get(&token_id)
             .expect("Token info not found");
 
-        if sender_id != &token.owner_id {
+        require!(
+            token.owner.token_id.is_none(),
+            "can not transfer tokens owned by other tokens"
+        );
+
+        if sender_id != &token.owner.account {
             if !token.approved_accounts.contains_key(&sender_id) {
                 env::panic_str("Unauthorized transfer");
             }
@@ -99,14 +102,17 @@ impl Tokens {
             }
         }
         require!(
-            &token.owner_id != receiver_id,
+            &token.owner.account != receiver_id,
             "The owner and the receiver should be different."
         );
 
         let new_token = Token {
             type_id: token.type_id,
-            owner_id: receiver_id.clone(),
-            guild_id: token.guild_id.clone(),
+            owner: OwnerIds {
+                account: receiver_id.clone(),
+                guild_id: token.owner.guild_id.clone(),
+                token_id: token.owner.token_id.clone(),
+            },
             payout: token.payout.clone(),
             approval_index: token.approval_index,
             approved_accounts: Default::default(),
@@ -125,7 +131,7 @@ impl Tokens {
             version: EVENT_NFT_METADATA_SPEC.to_string(),
             event: JsonEventVariant::NftTransfer(vec![NftTransferLog {
                 authorized_id,
-                old_owner_id: token.owner_id.to_string(),
+                old_owner_id: token.owner.account.to_string(),
                 new_owner_id: receiver_id.to_string(),
                 token_ids: vec![token_id.to_string()],
                 memo,

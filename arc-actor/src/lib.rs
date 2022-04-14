@@ -72,16 +72,20 @@ impl ArcActors {
         require_min_one_yocto();
         let storage_usage = env::storage_usage();
 
+        let owner = OwnerIds {
+            account: owner_id,
+            guild_id: guild_id,
+            token_id: None,
+        };
         self.tokens.register(
-            &owner_id,
+            &owner,
             &token_id,
             TokenType::Actor,
             token_data,
             token_payout,
-            guild_id,
             None,
         );
-        self.actors.register(&owner_id, &token_id, actor_data, None);
+        self.actors.register(&owner, &token_id, actor_data, None);
 
         refund_storage_deposit(env::storage_usage() - storage_usage);
     }

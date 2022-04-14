@@ -28,7 +28,7 @@ impl Actors {
 
     pub fn register(
         &mut self,
-        receiver_id: &AccountId,
+        owner: &OwnerIds,
         token_id: &TokenId,
         actor_data: ActorData,
         memo: Option<String>,
@@ -40,13 +40,13 @@ impl Actors {
             "An actor with the provided id already exits"
         );
 
-        self.add_to_owner(receiver_id.clone().into(), token_id);
+        self.add_to_owner(owner.account.clone().into(), token_id);
 
         let arc_register_log: ArcEventLog = ArcEventLog {
             module: EVENT_ARC_STANDARD_ACTOR.to_string(),
             version: EVENT_ARC_METADATA_SPEC.to_string(),
             event: ArcEventVariant::ArcRegister(vec![ArcRegisterLog {
-                user_id: receiver_id.to_string(),
+                user_id: owner.account.to_string(),
                 keys_list: vec![token_id.to_string()],
                 memo,
             }]),
