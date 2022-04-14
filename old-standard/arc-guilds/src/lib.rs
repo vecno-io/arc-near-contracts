@@ -1,8 +1,6 @@
-use near_sdk::{
-    borsh::{self, BorshDeserialize, BorshSerialize},
-    collections::{LazyOption, LookupMap, UnorderedMap, UnorderedSet},
-    serde::{Deserialize, Serialize},
-};
+use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize},
+use near_sdk::collections::{LazyOption, LookupMap, UnorderedMap, UnorderedSet},
+use near_sdk::serde::{Deserialize, Serialize},
 use near_sdk::{env, require, AccountId};
 use std::{collections::HashMap, fmt};
 
@@ -20,35 +18,6 @@ pub use crate::guild::*;
 pub use crate::utils::*;
 pub use crate::votes::*;
 
-// ==== Storage Keys ====
-
-#[derive(BorshSerialize)]
-pub enum StorageKey {
-    GuildsState,
-    GuildInfoMap,
-    GuildAccountMap,
-    GuildAccountSet { id: AccountId },
-    GuildBoardMap,
-    GuildBoardList { id: GuildId },
-    GuildMembersMap,
-    GuildMembersList { id: GuildId },
-    VotesMotionMap,
-    VotesResultMap,
-    VotesVoicesMap,
-    VotesVoicesMapList { id: MotionId },
-}
-
-// ==== Lock State ====
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
-#[serde(crate = "near_sdk::serde")]
-pub enum LockedFor {
-    None,
-    Locking,
-    Emergency,
-    Challenge,
-    Challenging,
-}
 
 // ==== Lock Contract ====
 
