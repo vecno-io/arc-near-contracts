@@ -132,6 +132,14 @@ macro_rules! impl_nft_tokens {
         use $crate::token::*;
         use $crate::*;
 
+        pub const GAS_NFT_TOKEN: Gas = Gas(80_000_000_000_000);
+        pub const GAS_NFT_TOKEN_CALLBACK: Gas = Gas(10_000_000_000_000);
+
+        #[ext_contract(ext_token_call)]
+        pub trait ExtTokenCall {
+            fn nft_token(&self, token_id: TokenId) -> Option<JsonToken>;
+        }
+
         #[ext_contract(ext_nft_receiver)]
         trait NftReceiver {
             fn nft_on_transfer(

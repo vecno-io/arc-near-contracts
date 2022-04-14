@@ -50,7 +50,7 @@ impl Tokens {
         };
         require!(
             self.info_by_id.insert(&token_id, &token).is_none(),
-            "A token with the provided id already exits"
+            "a token with the provided id already exits"
         );
 
         self.add_to_owner(owner.account.clone().into(), &token_id);
