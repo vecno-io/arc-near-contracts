@@ -13,8 +13,10 @@ pub use self::data::*;
 pub struct Actors {
     //keeps track of the tokens data for a given token key
     pub data_for_id: UnorderedMap<TokenId, ActorData>,
-    //keeps track of all the tokens for a given account key
+    //keeps track of all the actors for a given account key
     pub list_per_owner: LookupMap<AccountId, UnorderedSet<TokenId>>,
+    //keeps track of the link between the actor and an owning token
+    pub link_for_token: LookupMap<TokenId, TokenId>,
 }
 
 impl Actors {
@@ -22,6 +24,7 @@ impl Actors {
         let this = Self {
             data_for_id: UnorderedMap::new(StorageKey::ActorDataForId.try_to_vec().unwrap()),
             list_per_owner: LookupMap::new(StorageKey::ActorListPerOwner.try_to_vec().unwrap()),
+            link_for_token: LookupMap::new(StorageKey::ActorLinkForToken.try_to_vec().unwrap()),
         };
         this
     }

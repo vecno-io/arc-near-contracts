@@ -141,34 +141,6 @@ impl Tokens {
 
         token
     }
-
-    pub fn set_link(
-        &mut self,
-        token_id: TokenId,
-        owner_account: AccountId,
-        owner_token_id: Option<TokenId>,
-    ) {
-        let token = self
-            .info_by_id
-            .get(&token_id)
-            .expect("token info not found");
-
-        let new_token = Token {
-            type_id: token.type_id,
-            owner: OwnerIds {
-                account: owner_account.clone(),
-                guild_id: token.owner.guild_id.clone(),
-                token_id: owner_token_id.clone(),
-            },
-            payout: token.payout,
-            approval_index: 0,
-            approved_accounts: Default::default(),
-        };
-        self.info_by_id.insert(&token_id, &new_token);
-
-        self.remove_from_owner(token.owner.account.clone(), &token_id);
-        self.add_to_owner(owner_account.clone(), &token_id);
-    }
 }
 
 crate::impl_is_owned!(Tokens, TokenId, TokenListPerOwnerSet);

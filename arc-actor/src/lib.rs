@@ -20,12 +20,6 @@ arc_standard::impl_meta!(ArcActors, meta);
 arc_standard::impl_arc_actors!(ArcActors, tokens, actors);
 arc_standard::impl_nft_tokens!(ArcActors, tokens, actors);
 
-#[derive(BorshSerialize)]
-pub enum StorageKey {
-    AppAdmin,
-    AppMetadata,
-}
-
 #[ext_contract(ext_token_resolve)]
 pub trait ExtTokenCResolver {
     fn arc_mint_actor_link_callback(
@@ -159,8 +153,13 @@ impl ArcActors {
         );
         require!(
             self.tokens.info_by_id.get(&actor_id).is_none(),
-            "a actor with the provided id already exits"
+            "an actor with the provided id already exits"
         );
+        require!(
+            self.actors.link_for_token.get(&token_id).is_none(),
+            "the token is already linked to an other actor"
+        );
+        // TODO Block link when token already linked
 
         let sender_account = env::predecessor_account_id();
         ext_token_call::nft_token(token_id.clone(), token_account.clone(), 0, GAS_NFT_TOKEN).then(
@@ -225,6 +224,11 @@ impl ArcActors {
         token_id: TokenId,
         token_account: AccountId,
     ) -> Promise {
+        require!(
+            self.actors.link_for_token.get(&token_id).is_none(),
+            "the token is already linked to an other actor"
+        );
+
         let actor = self
             .tokens
             .info_by_id
@@ -269,8 +273,7 @@ impl ArcActors {
             require!(token.token_id == token_id, "invalid token id");
         }
 
-        self.tokens
-            .set_link(actor_id, token_account, Some(token_id));
+        self.set_link(&actor_id, &token_account, Some(token_id));
     }
 
     #[payable]
@@ -318,6 +321,6 @@ impl ArcActors {
             require!(token.token_id == token_id, "invalid token link");
         }
 
-        self.tokens.set_link(actor_id, sender_account, None);
+        self.set_link(&actor_id, &sender_account, None);
     }
 }
