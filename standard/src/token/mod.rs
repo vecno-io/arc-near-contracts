@@ -79,7 +79,7 @@ impl Tokens {
         let token = self
             .info_by_id
             .get(&token_id)
-            .expect("Token info not found");
+            .expect("token info not found");
 
         require!(
             token.owner.token_id.is_none(),
@@ -88,22 +88,22 @@ impl Tokens {
 
         if sender_id != &token.owner.account {
             if !token.approved_accounts.contains_key(&sender_id) {
-                env::panic_str("Unauthorized transfer");
+                env::panic_str("unauthorized transfer");
             }
             if let Some(enforced_approval_id) = approval_id {
                 let actual_approval_id = token
                     .approved_accounts
                     .get(&sender_id)
-                    .expect("Sender is not authorized to transfer");
+                    .expect("sender is not authorized to transfer");
                 require!(
                     actual_approval_id == &enforced_approval_id,
-                    "Sender provided an invalid approval id",
+                    "sender provided an invalid approval id",
                 );
             }
         }
         require!(
             &token.owner.account != receiver_id,
-            "The owner and the receiver should be different."
+            "the owner and the receiver should be different"
         );
 
         let new_token = Token {
@@ -119,8 +119,8 @@ impl Tokens {
         };
         self.info_by_id.insert(&token_id, &new_token);
 
-        self.remove_from_owner(sender_id.clone().into(), &token_id);
-        self.add_to_owner(receiver_id.clone().into(), &token_id);
+        self.remove_from_owner(sender_id.clone(), &token_id);
+        self.add_to_owner(receiver_id.clone(), &token_id);
 
         let mut authorized_id = None;
         if approval_id.is_some() {
@@ -140,6 +140,34 @@ impl Tokens {
         env::log_str(&nft_transfer_log.to_string());
 
         token
+    }
+
+    pub fn set_link(
+        &mut self,
+        token_id: TokenId,
+        owner_account: AccountId,
+        owner_token_id: Option<TokenId>,
+    ) {
+        let token = self
+            .info_by_id
+            .get(&token_id)
+            .expect("token info not found");
+
+        let new_token = Token {
+            type_id: token.type_id,
+            owner: OwnerIds {
+                account: owner_account.clone(),
+                guild_id: token.owner.guild_id.clone(),
+                token_id: owner_token_id.clone(),
+            },
+            payout: token.payout,
+            approval_index: 0,
+            approved_accounts: Default::default(),
+        };
+        self.info_by_id.insert(&token_id, &new_token);
+
+        self.remove_from_owner(token.owner.account.clone(), &token_id);
+        self.add_to_owner(owner_account.clone(), &token_id);
     }
 }
 

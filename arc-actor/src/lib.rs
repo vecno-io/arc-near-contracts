@@ -30,14 +30,28 @@ pub enum StorageKey {
 pub trait ExtTokenCResolver {
     fn arc_mint_actor_link_callback(
         &mut self,
-        contract_id: AccountId,
-        sender_id: AccountId,
-        linked_id: TokenId,
+        actor_id: TokenId,
         token_id: TokenId,
+        token_account: AccountId,
+        sender_account: AccountId,
         actor_data: ActorData,
         token_data: TokenData,
         token_payout: TokenPayout,
         guild_id: Option<GuildId>,
+    ) -> bool;
+
+    fn arc_actor_link_callback(
+        &mut self,
+        actor_id: TokenId,
+        token_id: TokenId,
+        token_account: AccountId,
+        sender_account: AccountId,
+    ) -> bool;
+
+    fn arc_actor_ulink_callback(
+        actor_id: TokenId,
+        token_id: TokenId,
+        sender_account: AccountId,
     ) -> bool;
 }
 
@@ -71,6 +85,22 @@ impl ArcActors {
             reference: None,
             reference_hash: None,
         })
+    }
+}
+
+impl ArcActors {
+    fn token_from_promise_result(&mut self) -> Option<JsonToken> {
+        require!(
+            env::promise_results_count() == 1,
+            "the method can only be called as a callback"
+        );
+        match env::promise_result(0) {
+            PromiseResult::NotReady => unreachable!(),
+            PromiseResult::Failed => env::panic_str("failed to get token info"),
+            PromiseResult::Successful(result) => {
+                near_sdk::serde_json::from_slice::<Option<JsonToken>>(&result).unwrap()
+            }
+        }
     }
 }
 
@@ -111,9 +141,12 @@ impl ArcActors {
     #[payable]
     pub fn arc_mint_actor_link(
         &mut self,
-        contract_id: AccountId,
-        linked_id: TokenId,
+        // contract_id: AccountId,
+        // linked_id: TokenId,
+        // token_id: TokenId,
+        actor_id: TokenId,
         token_id: TokenId,
+        token_account: AccountId,
         actor_data: ActorData,
         token_data: TokenData,
         token_payout: TokenPayout,
@@ -124,23 +157,18 @@ impl ArcActors {
             // TODO Set a more flexible mint cost
             "minimum mint cost is 0.1 near"
         );
-
-        token_data.require_valid();
-        token_payout.require_valid();
-
         require!(
-            self.tokens.info_by_id.get(&token_id).is_none(),
-            "a token with the provided id already exits"
+            self.tokens.info_by_id.get(&actor_id).is_none(),
+            "a actor with the provided id already exits"
         );
 
-        let sender_id = env::predecessor_account_id();
-
-        ext_token_call::nft_token(token_id.clone(), contract_id.clone(), 0, GAS_NFT_TOKEN)
-            .then(ext_token_resolve::arc_mint_actor_link_callback(
-                contract_id,
-                sender_id,
-                linked_id,
+        let sender_account = env::predecessor_account_id();
+        ext_token_call::nft_token(token_id.clone(), token_account.clone(), 0, GAS_NFT_TOKEN).then(
+            ext_token_resolve::arc_mint_actor_link_callback(
+                actor_id,
                 token_id,
+                token_account,
+                sender_account,
                 actor_data,
                 token_data,
                 token_payout,
@@ -148,53 +176,148 @@ impl ArcActors {
                 env::current_account_id(),
                 0,
                 GAS_NFT_TOKEN_CALLBACK,
-            ))
-            .as_return()
+            ),
+        )
     }
 
     pub fn arc_mint_actor_link_callback(
         &mut self,
-        contract_id: AccountId,
-        sender_id: AccountId,
-        linked_id: TokenId,
+        actor_id: TokenId,
         token_id: TokenId,
+        token_account: AccountId,
+        sender_account: AccountId,
         actor_data: ActorData,
         token_data: TokenData,
         token_payout: TokenPayout,
         guild_id: Option<GuildId>,
     ) {
-        require!(
-            env::promise_results_count() == 1,
-            "the method can only be called as a callback"
-        );
-
-        let info = match env::promise_result(0) {
-            PromiseResult::NotReady => unreachable!(),
-            PromiseResult::Failed => env::panic_str("failed to get token info"),
-            PromiseResult::Successful(result) => {
-                near_sdk::serde_json::from_slice::<Option<JsonToken>>(&result).unwrap()
-            }
-        };
-
+        let info = self.token_from_promise_result();
         require!(info.is_some(), "invalid token info");
+
         if let Some(token) = info {
-            require!(token.owner_id == sender_id, "invalid owner link");
-            require!(token.token_id == linked_id, "invalid token link");
+            require!(token.owner_id == sender_account, "invalid owner link");
+            require!(token.token_id == token_id, "invalid token link");
         }
 
         let owner = OwnerIds {
-            account: contract_id,
+            account: token_account,
             guild_id: guild_id,
-            token_id: Some(linked_id),
+            token_id: Some(token_id),
         };
         self.tokens.register(
             &owner,
-            &token_id,
+            &actor_id,
             TokenType::Actor,
             token_data,
             token_payout,
             None,
         );
-        self.actors.register(&owner, &token_id, actor_data, None);
+        self.actors.register(&owner, &actor_id, actor_data, None);
+    }
+}
+
+#[near_bindgen]
+impl ArcActors {
+    #[payable]
+    pub fn arc_actor_link(
+        &mut self,
+        actor_id: TokenId,
+        token_id: TokenId,
+        token_account: AccountId,
+    ) -> Promise {
+        let actor = self
+            .tokens
+            .info_by_id
+            .get(&actor_id)
+            .expect("actor info not found");
+        require!(
+            actor.owner.token_id.is_none(),
+            "only an unlink actor can be linked"
+        );
+
+        let sender_account = env::predecessor_account_id();
+        require!(
+            sender_account == actor.owner.account,
+            "only the owner of an actor can link it"
+        );
+
+        ext_token_call::nft_token(token_id.clone(), token_account.clone(), 0, GAS_NFT_TOKEN).then(
+            ext_token_resolve::arc_actor_link_callback(
+                actor_id,
+                token_id,
+                token_account,
+                sender_account,
+                env::current_account_id(),
+                0,
+                GAS_NFT_TOKEN_CALLBACK,
+            ),
+        )
+    }
+
+    pub fn arc_actor_link_callback(
+        &mut self,
+        actor_id: TokenId,
+        token_id: TokenId,
+        token_account: AccountId,
+        sender_account: AccountId,
+    ) {
+        let info = self.token_from_promise_result();
+        require!(info.is_some(), "invalid token info");
+
+        if let Some(token) = info {
+            require!(token.owner_id == sender_account, "invalid link owner");
+            require!(token.token_id == token_id, "invalid token id");
+        }
+
+        self.tokens
+            .set_link(actor_id, token_account, Some(token_id));
+    }
+
+    #[payable]
+    pub fn arc_actor_ulink(&mut self, actor_id: TokenId) -> Promise {
+        let actor = self
+            .tokens
+            .info_by_id
+            .get(&actor_id)
+            .expect("actor info not found");
+
+        let token_id = actor
+            .owner
+            .token_id
+            .expect("only a link actor can be unlinked");
+
+        let sender_account = env::predecessor_account_id();
+
+        ext_token_call::nft_token(
+            token_id.clone(),
+            actor.owner.account.clone(),
+            0,
+            GAS_NFT_TOKEN,
+        )
+        .then(ext_token_resolve::arc_actor_ulink_callback(
+            actor_id,
+            token_id,
+            sender_account,
+            env::current_account_id(),
+            0,
+            GAS_NFT_TOKEN_CALLBACK,
+        ))
+    }
+
+    pub fn arc_actor_ulink_callback(
+        &mut self,
+        actor_id: TokenId,
+        token_id: TokenId,
+        sender_account: AccountId,
+    ) {
+        let info = self.token_from_promise_result();
+        require!(info.is_some(), "invalid token info");
+
+        if let Some(token) = info {
+            require!(token.owner_id == sender_account, "invalid owner link");
+            require!(token.token_id == token_id, "invalid token link");
+        }
+
+        self.tokens.set_link(actor_id, sender_account, None);
     }
 }
