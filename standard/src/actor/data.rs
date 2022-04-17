@@ -18,7 +18,8 @@ pub struct JsonActor {
 #[derive(Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct ActorData {
-    pub name: Name,
+    pub key: String,
+    pub handle: Handle,
     pub persona: Persona,
     pub ancestry: Ancestry,
     pub attributes: Attributes,
@@ -26,7 +27,7 @@ pub struct ActorData {
 
 #[derive(Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize)]
 #[serde(crate = "near_sdk::serde")]
-pub struct Name {
+pub struct Handle {
     pub last: String,
     pub first: String,
 }
@@ -81,11 +82,11 @@ pub struct Attributes {
 
 impl ActorData {
     pub fn require_valid(&self) {
-        self.name.require_valid();
+        self.handle.require_valid();
     }
 }
 
-impl Name {
+impl Handle {
     pub fn require_valid(&self) {
         // Note: Look in to regex in near
         // https://github.com/rust-lang/regex

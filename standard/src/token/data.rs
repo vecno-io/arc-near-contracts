@@ -75,18 +75,6 @@ impl TokenData {
             self.title.is_some() && self.title.as_ref().unwrap().len() <= 28,
             "Max title length = 28"
         );
-        require!(
-            self.description.is_some() && self.description.as_ref().unwrap().len() <= 128,
-            "Max description length = 128"
-        );
-        require!(self.media.is_some() == self.media_hash.is_some());
-        if let Some(media_hash) = &self.media_hash {
-            require!(
-                media_hash.len() == 64,
-                "Media hash has to be hex encoded string (64 bytes)"
-            );
-        }
-
         require!(self.reference.is_some() == self.reference_hash.is_some());
         if let Some(reference_hash) = &self.reference_hash {
             require!(
