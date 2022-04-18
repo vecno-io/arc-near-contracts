@@ -54,7 +54,8 @@ impl_string_id!("motion", MotionId, MotionIdParseError);
 impl_string_id!("token", TokenId, TokenIdParseError);
 impl_string_id!("vote", VoteId, VoteIdParseError);
 
-#[derive(Clone, BorshDeserialize, BorshSerialize)]
+#[derive(Clone, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
+#[serde(crate = "near_sdk::serde")]
 pub struct OwnerIds {
     pub account: AccountId,
     pub guild_id: Option<GuildId>,

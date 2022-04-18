@@ -47,7 +47,7 @@ macro_rules! impl_arc_actors {
                     let token = self.$tokens.info_by_id.get(&token_id).unwrap();
                     return Some(JsonActor {
                         token_id: token_id,
-                        owner_id: token.owner.account,
+                        ownerdata: token.owner,
                         tokendata,
                         actordata,
                     });

@@ -7,8 +7,8 @@ use crate::token::TokenData;
 pub struct JsonActor {
     //token ID
     pub token_id: TokenId,
-    //owner of the token
-    pub owner_id: AccountId,
+    //owner info for the token
+    pub ownerdata: OwnerIds,
     //token metadata
     pub tokendata: TokenData,
     //token actordata
