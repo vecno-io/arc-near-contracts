@@ -8,6 +8,9 @@ use arc_standard::{actor::Actors, token::Tokens};
 
 const MIN_MINT_COST: u128 = 100_000_000_000_000_000_000_000;
 
+pub const GAS_LINK_TOKEN: Gas = Gas(80_000_000_000_000);
+pub const GAS_LINK_TOKEN_CALLBACK: Gas = Gas(80_000_000_000_000);
+
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct ArcActors {
@@ -152,6 +155,10 @@ impl ArcActors {
             "minimum mint cost is 0.1 near"
         );
         require!(
+            env::prepaid_gas() > GAS_LINK_TOKEN + GAS_LINK_TOKEN_CALLBACK,
+            "not enough prepaid gas to be attached to the transaction"
+        );
+        require!(
             self.tokens.info_by_id.get(&actor_id).is_none(),
             "an actor with the provided id already exits"
         );
@@ -159,10 +166,9 @@ impl ArcActors {
             self.actors.link_for_token.get(&token_id).is_none(),
             "the token is already linked to an other actor"
         );
-        // TODO Block link when token already linked
 
         let sender_account = env::predecessor_account_id();
-        ext_token_call::nft_token(token_id.clone(), token_account.clone(), 0, GAS_NFT_TOKEN).then(
+        ext_token_call::nft_token(token_id.clone(), token_account.clone(), 0, GAS_LINK_TOKEN).then(
             ext_token_resolve::arc_mint_actor_link_callback(
                 actor_id,
                 token_id,
@@ -174,7 +180,7 @@ impl ArcActors {
                 guild_id,
                 env::current_account_id(),
                 0,
-                GAS_NFT_TOKEN_CALLBACK,
+                GAS_LINK_TOKEN_CALLBACK,
             ),
         )
     }
@@ -225,6 +231,10 @@ impl ArcActors {
         token_account: AccountId,
     ) -> Promise {
         require!(
+            env::prepaid_gas() > GAS_LINK_TOKEN + GAS_LINK_TOKEN_CALLBACK,
+            "not enough prepaid gas to be attached to the transaction"
+        );
+        require!(
             self.actors.link_for_token.get(&token_id).is_none(),
             "the token is already linked to an other actor"
         );
@@ -236,7 +246,7 @@ impl ArcActors {
             .expect("actor info not found");
         require!(
             actor.owner.token_id.is_none(),
-            "only an unlink actor can be linked"
+            "only an unlinked actor can be linked"
         );
 
         let sender_account = env::predecessor_account_id();
@@ -245,7 +255,7 @@ impl ArcActors {
             "only the owner of an actor can link it"
         );
 
-        ext_token_call::nft_token(token_id.clone(), token_account.clone(), 0, GAS_NFT_TOKEN).then(
+        ext_token_call::nft_token(token_id.clone(), token_account.clone(), 0, GAS_LINK_TOKEN).then(
             ext_token_resolve::arc_actor_link_callback(
                 actor_id,
                 token_id,
@@ -253,7 +263,7 @@ impl ArcActors {
                 sender_account,
                 env::current_account_id(),
                 0,
-                GAS_NFT_TOKEN_CALLBACK,
+                GAS_LINK_TOKEN_CALLBACK,
             ),
         )
     }
@@ -287,7 +297,7 @@ impl ArcActors {
         let token_id = actor
             .owner
             .token_id
-            .expect("only a link actor can be unlinked");
+            .expect("only an linked actor can be unlinked");
 
         let sender_account = env::predecessor_account_id();
 
@@ -295,7 +305,7 @@ impl ArcActors {
             token_id.clone(),
             actor.owner.account.clone(),
             0,
-            GAS_NFT_TOKEN,
+            GAS_LINK_TOKEN,
         )
         .then(ext_token_resolve::arc_actor_ulink_callback(
             actor_id,
@@ -303,7 +313,7 @@ impl ArcActors {
             sender_account,
             env::current_account_id(),
             0,
-            GAS_NFT_TOKEN_CALLBACK,
+            GAS_LINK_TOKEN_CALLBACK,
         ))
     }
 

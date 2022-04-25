@@ -41,12 +41,12 @@ macro_rules! impl_arc_actors {
 
         #[near_bindgen]
         impl ArcEnumeration for $contract {
-            fn arc_actor(&self, token_id: TokenId) -> Option<JsonActor> {
-                if let Some(actordata) = self.$actors.data_for_id.get(&token_id) {
-                    let tokendata = self.$tokens.data_for_id.get(&token_id).unwrap();
-                    let token = self.$tokens.info_by_id.get(&token_id).unwrap();
+            fn arc_actor(&self, actor_id: TokenId) -> Option<JsonActor> {
+                if let Some(actordata) = self.$actors.data_for_id.get(&actor_id) {
+                    let tokendata = self.$tokens.data_for_id.get(&actor_id).unwrap();
+                    let token = self.$tokens.info_by_id.get(&actor_id).unwrap();
                     return Some(JsonActor {
-                        token_id: token_id,
+                        token_id: actor_id,
                         ownerdata: token.owner,
                         tokendata,
                         actordata,
